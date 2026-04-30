@@ -1,0 +1,26 @@
+# Data folders (too large for GitHub)
+data/
+data_cleaned/
+delta_lake/
+volumes/
+
+# Python environment
+cerebro_env/
+__pycache__/
+*.pyc
+*.pyo
+
+# EEG data files
+*.fif
+*.edf
+*.gdf
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+*.jsonl

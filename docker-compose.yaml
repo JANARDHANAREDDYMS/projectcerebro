@@ -1,0 +1,113 @@
+
+# ProjectCerebro — Local Development Database Stack
+# Databases: MongoDB, Cassandra, Redis, PostgreSQL + pgvector
+# Credentials: cerebro / cerebro123 (dev only)
+# Start:  docker-compose up -d
+# Stop:   docker-compose down
+# Logs:   docker-compose logs -f
+
+services:
+
+  # ── MongoDB ────────────────────────────────────────────
+  # Stores: subject metadata, annotations, run info
+  mongodb:
+    image: mongo:7.0
+    container_name: cerebro_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: cerebro
+      MONGO_INITDB_ROOT_PASSWORD: cerebro123
+      MONGO_INITDB_DATABASE: projectcerebro
+    volumes:
+      - ./volumes/mongodb:/data/db
+    networks:
+      - cerebro_network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Cassandra ──────────────────────────────────────────
+  # Stores: raw EEG time-series samples
+  cassandra:
+    image: cassandra:4.1
+    container_name: cerebro_cassandra
+    restart: unless-stopped
+    ports:
+      - "9042:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: CerebroCluster
+      CASSANDRA_DC: dc1
+      CASSANDRA_RACK: rack1
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      HEAP_NEWSIZE: 128M
+      MAX_HEAP_SIZE: 2G
+    volumes:
+      - ./volumes/cassandra:/var/lib/cassandra
+    networks:
+      - cerebro_network
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
+      interval: 60s
+      timeout: 30s
+      retries: 10
+      start_period: 90s
+
+  # ── Redis ──────────────────────────────────────────────
+  # Stores: inference cache, real-time prediction state
+  redis:
+    image: redis:7.2-alpine
+    container_name: cerebro_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --requirepass cerebro123
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+    volumes:
+      - ./volumes/redis:/data
+    networks:
+      - cerebro_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "cerebro123", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  # ── PostgreSQL + pgvector ──────────────────────────────
+  # Stores: 128-dimensional trial embeddings for similarity search
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: cerebro_postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: cerebro
+      POSTGRES_PASSWORD: cerebro123
+      POSTGRES_DB: projectcerebro
+    volumes:
+      - ./volumes/postgres:/var/lib/postgresql/data
+      - ./scripts/init_pgvector.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - cerebro_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cerebro -d projectcerebro"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+# ── Network ────────────────────────────────────────────────
+networks:
+  cerebro_network:
+    driver: bridge
+    name: cerebro_network
