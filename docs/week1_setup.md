@@ -24,6 +24,28 @@ Stage 2: Spark Preprocessing (multiprocessing Pool(4), ~45-60 mins)
   Cleaned .fif files -> Delta Lake Parquet epochs
 ```
 
+
+## Quick Start — Download Preprocessed Data (Recommended)
+
+Instead of running the full pipeline yourself,
+download the preprocessed data directly from Google Drive:
+
+**Available on shared Drive:**
+- `delta_lake/` (~400MB) — Stage 2 output, ready for ML training
+- `data_cleaned/` (~3.6GB) — Stage 1 ICA cleaned files (on request)
+
+**Google Drive link:** [ProjectCerebro-Shared](PASTE_DRIVE_LINK_HERE)
+
+**Steps:**
+1. Download `delta_lake/` folder from Drive
+2. Place it at: `projectcerebro/delta_lake/`
+3. Run the verification cell in notebooks/
+4. You are ready for Week 2 ML training
+
+Only follow Steps 2-4 below if you want
+to reproduce the pipeline from scratch.
+
+
 ---
 
 ## Prerequisites
