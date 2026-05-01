@@ -1,0 +1,1 @@
+- This week, I am doing implemenation of EEGNet and EEG Conformer.p_
