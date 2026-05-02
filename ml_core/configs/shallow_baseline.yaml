@@ -1,0 +1,12 @@
+seed: 42
+batch_size: 64
+n_epochs: 50
+smoke_epochs: 200
+patience: 15
+lr: 0.001
+weight_decay: 0.0001
+model:
+  name: ShallowConvNet
+  n_channels: 5
+  n_samples: 512
+  n_classes: 3
