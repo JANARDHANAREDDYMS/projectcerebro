@@ -15,6 +15,7 @@
 # Python environment
 .venv/
 cerebro_env/
+requirements_colab.txt
 __pycache__/
 *.pyc
 *.pyo
