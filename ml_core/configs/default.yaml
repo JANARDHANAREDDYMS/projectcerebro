@@ -1,0 +1,9 @@
+seed: 42
+delta_path: delta_lake/epochs_mi_v1_ch5_sr128_bp8_30
+filter_version: bp_8_30_v1
+batch_size: 64
+epochs: 50
+lr: 1.0e-3
+patience: 15
+mlflow_experiment: cerebro_week2
+mlflow_uri: file://./artifacts/mlruns

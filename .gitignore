@@ -24,3 +24,16 @@ __pycache__/
 # Logs
 *.log
 *.jsonl
+
+# Python venvs
+.venv/
+venv/
+
+# ML run artifacts (keep folder placeholders only)
+artifacts/checkpoints/*
+!artifacts/checkpoints/.gitkeep
+artifacts/reports/*
+!artifacts/reports/.gitkeep
+artifacts/mlruns/*
+!artifacts/mlruns/.gitkeep
+

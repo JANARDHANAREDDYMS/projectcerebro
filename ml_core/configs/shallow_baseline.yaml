@@ -1,0 +1,9 @@
+model: ShallowConvNet
+delta_path: delta_lake/epochs_mi_v1_ch5_sr128_bp8_30
+filter_version: bp_8_30_v1
+datasets: [physionet, bci_iv_2a]
+batch_size: 64
+epochs: 60
+lr: 1.0e-3
+patience: 15
+out_dir: artifacts/checkpoints/shallow_bp8_30
