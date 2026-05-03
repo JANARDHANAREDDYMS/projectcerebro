@@ -1,8 +1,8 @@
 # Data folders (too large for GitHub)
-data/
-data_cleaned/
-delta_lake/
-volumes/
+/data/
+/data_cleaned/
+/delta_lake/
+/volumes/
 
 # Python environment
 cerebro_env/
@@ -24,3 +24,26 @@ __pycache__/
 # Logs
 *.log
 *.jsonl
+
+# Local OAuth credentials
+/credentials.json
+/token.json
+
+# ML training outputs
+ml_runs/
+
+# Temporary local ML prototype; canonical package is ml_core/
+/ml_pipeline/
+/scripts/train_ml_pipeline.py
+
+# Python venvs
+.venv/
+venv/
+
+# ML run artifacts (keep folder placeholders only)
+artifacts/checkpoints/*
+!artifacts/checkpoints/.gitkeep
+artifacts/reports/*
+!artifacts/reports/.gitkeep
+artifacts/mlruns/*
+!artifacts/mlruns/.gitkeep
