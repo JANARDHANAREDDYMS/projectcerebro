@@ -29,6 +29,11 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--delta-path", required=True, help="Path to a Delta epochs table.")
     parser.add_argument("--filter-version", default=None, help="e.g. bp_8_30_v1")
     parser.add_argument("--datasets", nargs="*", default=None, help="Subset of datasets to load.")
+    parser.add_argument(
+        "--drop-synthetic-rest",
+        action="store_true",
+        help="Drop synthetic rest rows when building train/val/test loaders.",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=50)
@@ -74,7 +79,7 @@ def build_loaders(
         args.delta_path,
         datasets=args.datasets,
         filter_version=args.filter_version,
-        drop_synthetic_rest=drop_synthetic_rest,
+        drop_synthetic_rest=drop_synthetic_rest or getattr(args, "drop_synthetic_rest", False),
     )
     train_df, val_df, test_df, manifest = subject_split(df, seed=args.seed)
 

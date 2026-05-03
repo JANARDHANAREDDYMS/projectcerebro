@@ -1,0 +1,17 @@
+model: EEGConformer
+delta_path: delta_lake/epochs_mi_v1_ch5_sr128_bp8_30
+filter_version: bp_8_30_v1
+datasets: [physionet, bci_iv_2a]
+batch_size: 64
+epochs: 80
+lr: 5.0e-4
+patience: 20
+out_dir: artifacts/checkpoints/conformer_bp8_30
+use_class_weights: true
+use_ea: true
+embed_dim: 128
+conv_filters: 40
+n_heads: 4
+depth: 4
+ff_dim: 256
+dropout: 0.25
