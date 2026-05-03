@@ -1,10 +1,8 @@
 # Data folders (too large for GitHub)
-/data/
-/data_cleaned/
-/delta_lake/
-/volumes/
-/artifacts/mlruns/
-/artifacts/checkpoints/
+data/
+data_cleaned/
+delta_lake/
+volumes/
 
 # Python environment
 cerebro_env/

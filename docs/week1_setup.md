@@ -34,7 +34,7 @@ download the preprocessed data directly from Google Drive:
 - `delta_lake/` (~400MB) — Stage 2 output, ready for ML training
 - `data_cleaned/` (~3.6GB) — Stage 1 ICA cleaned files (on request)
 
-**Google Drive link:** [ProjectCerebro-Shared](https://drive.google.com/drive/folders/1eWYfso6ILulAiVoFZAmbB5eADBGRGxPb?usp=sharing)
+**Google Drive link:** [ProjectCerebro-Shared](PASTE_DRIVE_LINK_HERE)
 
 **Steps:**
 1. Download `delta_lake/` folder from Drive
