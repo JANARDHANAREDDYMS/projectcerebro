@@ -36,3 +36,52 @@ Sources:
 
 
     
+
+
+
+DOne today for ML:
+
+Done so far:
+
+  1. Merged/available ML core locally
+      - Chiranjeev’s ml_core/ structure is present locally.
+      - Models, trainer, evaluation, experiment scripts, tests, configs are present.
+  2. Implemented missing ml_core/data/ locally
+     Added:
+      - schema.py
+      - delta_loader.py
+      - splits.py
+      - normalize.py
+      - dataset.py
+      - __init__.py
+
+     This includes:
+      - Delta/Parquet loading
+      - schema validation
+      - subject-level train/val/test split
+      - Euclidean Alignment
+      - z-score normalization
+      - PyTorch EpochDataset
+  3. Integrated EA into experiment loader
+      - Added --use-ea
+      - EA fitted on training split only
+      - z-score fitted on training split only
+      - val/test use train-fitted transforms
+  4. Installed pytest
+     Installed into cerebro_env:
+      - pytest==8.2.0
+      - pytest-cov==5.0.0
+  5. Ran tests
+     Full test suite result:
+
+     22 passed, 1 skipped
+  6. Ran smoke training
+     One-epoch smoke run with EA completed successfully.
+  7. Cleaned push-blocking history state
+      - Your branch is now back aligned with origin/janardhan.
+      - The bad secret-containing commits are no longer ahead of remote.
+      - Added ignores for:
+          - credentials.json
+          - token.json
+          - temporary ml_pipeline/
+          - temporary scripts/train_ml_pipeline.py
