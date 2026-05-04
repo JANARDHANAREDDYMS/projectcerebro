@@ -47,13 +47,74 @@ The trainer auto-picks the best device: CUDA → MPS → CPU. Same scripts run o
 - [x] Implemented `ml_core/` package per validated plan.
 - [x] Added pytest test suite under `tests/`.
 - [x] Updated `requirements.txt` (mlflow, pytest, pytest-cov, torchmetrics, psycopg).
-- [ ] Download Drive `delta_lake/` into `delta_lake/`.
-- [ ] `pip install -r requirements.txt` in venv.
-- [ ] `pytest tests/` (synthetic-fixture tests run without the Drive download).
-- [ ] `python -m ml_core.experiments.train_smoke …` on M4 MPS.
-- [ ] EEGNet pretrain + fine-tune on Colab T4.
-- [ ] pgvector embedding export.
+- [x] Download Drive `delta_lake/` into `delta_lake/`.
+- [x] `pip install -r requirements.txt` in venv.
+- [x] `pytest tests/` — 21 pass, 2 skip (real Delta + pgvector gated).
+- [x] `python -m ml_core.experiments.train_smoke` — 5 epochs, val F1 0.343.
+- [x] ShallowConvNet baseline trained — 52.9% acc, 0.523 macro F1.
+- [x] EEGNet from scratch trained — 52.9% acc, 0.495 macro F1.
+- [ ] EEGNet pretrain on PhysioNet (needs separate dataset).
+- [ ] pgvector embedding export (script implemented, not run).
 - [ ] Colab notebook (follow-up PR).
+
+## Training Results (2026-05-04)
+
+All training runs completed locally on M4 MPS (MLflow disabled due to file store race condition).
+
+### ShallowConvNet Baseline
+
+**Command:**
+```bash
+python -m ml_core.experiments.train_shallow_baseline \
+  --delta-path delta_lake/epochs_mi_v1_ch5_sr128_bp8_30 \
+  --filter-version bp_8_30_v1 \
+  --out-dir artifacts/checkpoints/shallow_baseline
+```
+
+**Results (test set, 4668 samples, all datasets):**
+- Accuracy: **52.9%**
+- Macro F1: **0.523**
+- Balanced accuracy: **53.2%**
+- Best val F1: 0.485 @ epoch 19, stopped @ epoch 34
+
+**Per-class F1:**
+- Class 0: 0.493
+- Class 1: 0.464 (weakest, 41.9% recall)
+- Class 2: 0.613 (best, 71% recall)
+
+**Outputs:** `artifacts/checkpoints/shallow_baseline/{best.pt, test_overall.json, test_by_subject.json, norm_stats.json, split_manifest.json}`
+
+### EEGNet Baseline (from scratch)
+
+**Command:**
+```bash
+python -m ml_core.experiments.finetune_eegnet_bci \
+  --delta-path delta_lake/epochs_mi_v1_ch5_sr128_bp8_30 \
+  --filter-version bp_8_30_v1 \
+  --out-dir artifacts/checkpoints/eegnet_scratch
+```
+
+**Results (test set, 888 samples, BCI IV-2a only):**
+- Accuracy: **52.9%**
+- Macro F1: **0.495**
+- Balanced accuracy: **51.9%**
+- Best val F1: 0.394 @ epoch 15, stopped @ epoch 30
+
+**Per-class F1:**
+- Class 0: 0.398 (75% precision, 27% recall — too conservative)
+- Class 1: 0.467
+- Class 2: 0.619 (47% precision, 89.7% recall — too aggressive)
+
+**Outputs:** `artifacts/checkpoints/eegnet_scratch/{best.pt, test_overall.json, test_by_subject.json, norm_stats.json, split_manifest.json}`
+
+### Comparison
+
+| Model | Test Samples | Accuracy | Macro F1 | Bal. Acc | Notes |
+|-------|-------------|----------|----------|----------|-------|
+| ShallowConvNet | 4668 (all) | 52.9% | **0.523** | **53.2%** | Better balanced performance |
+| EEGNet | 888 (BCI only) | 52.9% | 0.495 | 51.9% | Biased toward class 2 |
+
+**Note:** ShallowConvNet trained on all datasets; EEGNet filtered to BCI IV-2a only (transfer learning setup). Not directly comparable.
 
 ## Validation of `PLAN.md`
 
