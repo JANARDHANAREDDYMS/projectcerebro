@@ -18,7 +18,7 @@ from ..evaluation.subject_eval import per_subject_metrics
 from ..models import EEGConformer
 from ..training import TrainConfig, Trainer, set_global_seed
 from ._common import add_common_args, build_callback, build_loaders, configure_logging
-from .train_shallow_baseline import _collect_test_preds
+from .train_shallow_baseline import save_test_predictions
 
 
 def main() -> None:
@@ -51,9 +51,12 @@ def main() -> None:
     cfg = TrainConfig(
         n_epochs=args.epochs,
         lr=args.lr,
+        weight_decay=args.weight_decay,
         batch_size=args.batch_size,
         early_stop_patience=args.patience,
         seed=args.seed,
+        grad_clip_norm=args.grad_clip_norm,
+        use_class_weights=not args.no_class_weights,
         device=args.device,
     )
     cb = build_callback(
@@ -82,8 +85,9 @@ def main() -> None:
             "dropout": args.dropout,
         }
     )
+    trainer.restore_best_checkpoint()
 
-    preds, y_true, sids = _collect_test_preds(trainer, test_loader)
+    preds, y_true, sids = save_test_predictions(trainer, test_loader, out / "test_predictions.jsonl")
     overall = trainer.evaluate_on(test_loader)
     save_classification_report(overall, out / "test_overall.json")
     by_subject = per_subject_metrics(y_true, preds, sids, n_classes=3)

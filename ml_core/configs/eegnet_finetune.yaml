@@ -5,9 +5,14 @@ datasets: [bci_iv_2a]
 batch_size: 32
 epochs: 60
 lr: 5.0e-4
+weight_decay: 1.0e-4
+grad_clip_norm: 1.0
 patience: 15
 freeze_backbone: false
 pretrained: artifacts/checkpoints/eegnet_physionet/best.pt
 out_dir: artifacts/checkpoints/eegnet_bci
 use_class_weights: true
 use_ea: true
+dropout: 0.25
+embed_dim: 128
+backbone_lr_mult: 1.0

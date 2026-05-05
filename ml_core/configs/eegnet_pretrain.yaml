@@ -5,7 +5,11 @@ datasets: [physionet]
 batch_size: 64
 epochs: 80
 lr: 1.0e-3
+weight_decay: 1.0e-4
+grad_clip_norm: 1.0
 patience: 20
 out_dir: artifacts/checkpoints/eegnet_physionet
 use_class_weights: true
 use_ea: true
+dropout: 0.25
+embed_dim: 128

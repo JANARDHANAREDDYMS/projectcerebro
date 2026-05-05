@@ -22,13 +22,13 @@ class EEGConformer(nn.Module):
         n_classes: int = 3,
         n_channels: int = 5,
         n_samples: int = 512,
-        embed_dim: int = 128,
+        embed_dim: int = 64,
         conv_filters: int = 40,
         kernel_length: int = 25,
         pool_length: int = 8,
         n_heads: int = 4,
-        depth: int = 4,
-        ff_dim: int = 256,
+        depth: int = 2,
+        ff_dim: int = 128,
         dropout: float = 0.25,
     ) -> None:
         super().__init__()
@@ -38,20 +38,27 @@ class EEGConformer(nn.Module):
         self.n_classes = n_classes
         self.embed_dim = embed_dim
 
+        # Replace stem in eegconformer.py with:
         self.stem = nn.Sequential(
-            nn.Conv2d(
-                1,
-                conv_filters,
-                kernel_size=(1, kernel_length),
-                padding=(0, kernel_length // 2),
-                bias=False,
-            ),
-            nn.Conv2d(conv_filters, conv_filters, kernel_size=(n_channels, 1), bias=False),
-            nn.BatchNorm2d(conv_filters),
+            # Temporal filter per channel
+            nn.Conv2d(1, 40, 
+                    kernel_size=(1, 25),
+                    padding=(0, 12),
+                    bias=False),
+            nn.BatchNorm2d(40),
             nn.ELU(),
-            nn.AvgPool2d(kernel_size=(1, pool_length), stride=(1, pool_length)),
+            # Depthwise spatial - keep all channels
+            nn.Conv2d(40, 40,
+                    kernel_size=(n_channels, 1),
+                    groups=40,
+                    bias=False),
+            nn.BatchNorm2d(40),
+            nn.ELU(),
+            nn.AvgPool2d(kernel_size=(1, 8)),
             nn.Dropout(dropout),
         )
+        # After stem: (B, 40, 1, 64) -> squeeze -> (B, 40, 64)
+        # 64 tokens each with 40 features
         self.token_projection = nn.Linear(conv_filters, embed_dim)
 
         encoder_layer = nn.TransformerEncoderLayer(

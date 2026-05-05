@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader
 
 from ..evaluation.metrics import compute_classification_metrics
 from .callbacks import NoOpCallback
-from .checkpoint import save_checkpoint
+from .checkpoint import load_checkpoint, save_checkpoint
 
 
 def pick_device(prefer: str | None = None) -> torch.device:
@@ -84,6 +84,7 @@ class Trainer:
         ckpt_path: str | Path | None = None,
         n_classes: int = 3,
         train_label_array: np.ndarray | None = None,
+        param_groups: list[dict[str, Any]] | None = None,
     ) -> None:
         self.model = model
         self.train_loader = train_loader
@@ -100,7 +101,8 @@ class Trainer:
         else:
             self.class_weights = None
 
-        self.optimizer = AdamW(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
+        optimizer_params = param_groups if param_groups is not None else model.parameters()
+        self.optimizer = AdamW(optimizer_params, lr=config.lr, weight_decay=config.weight_decay)
         self.scheduler = (
             CosineAnnealingLR(self.optimizer, T_max=config.n_epochs)
             if config.cosine_lr
@@ -171,10 +173,12 @@ class Trainer:
                 }
                 self.callback.log_metrics(step_metrics, step=epoch)
 
+                lr = self.optimizer.param_groups[0]["lr"]
                 if val_metrics["macro_f1"] > self.best_val:
                     self.best_val = val_metrics["macro_f1"]
                     self.best_epoch = epoch
                     self._patience = 0
+                    improved = True
                     if self.ckpt_path is not None:
                         save_checkpoint(
                             self.ckpt_path,
@@ -185,8 +189,35 @@ class Trainer:
                         )
                 else:
                     self._patience += 1
+                    improved = False
                     if self._patience >= self.config.early_stop_patience:
+                        print(
+                            f"epoch {epoch:03d}/{self.config.n_epochs:03d} "
+                            f"train_loss={tr_loss:.4f} "
+                            f"val_loss={val_metrics['loss']:.4f} "
+                            f"val_acc={val_metrics['accuracy']:.4f} "
+                            f"val_macro_f1={val_metrics['macro_f1']:.4f} "
+                            f"val_bal_acc={val_metrics['balanced_accuracy']:.4f} "
+                            f"best_f1={self.best_val:.4f} "
+                            f"patience={self._patience}/{self.config.early_stop_patience} "
+                            f"lr={lr:.2e} early_stop=True",
+                            flush=True,
+                        )
                         break
+
+                marker = " *" if improved else ""
+                print(
+                    f"epoch {epoch:03d}/{self.config.n_epochs:03d} "
+                    f"train_loss={tr_loss:.4f} "
+                    f"val_loss={val_metrics['loss']:.4f} "
+                    f"val_acc={val_metrics['accuracy']:.4f} "
+                    f"val_macro_f1={val_metrics['macro_f1']:.4f} "
+                    f"val_bal_acc={val_metrics['balanced_accuracy']:.4f} "
+                    f"best_f1={self.best_val:.4f} "
+                    f"patience={self._patience}/{self.config.early_stop_patience} "
+                    f"lr={lr:.2e}{marker}",
+                    flush=True,
+                )
 
             summary = {
                 "best_val_macro_f1": self.best_val,
@@ -205,3 +236,11 @@ class Trainer:
     def evaluate_on(self, loader: DataLoader) -> dict[str, float]:
         """Public eval entrypoint (e.g. for the test set)."""
         return self._run_validation(loader)
+
+    def restore_best_checkpoint(self) -> None:
+        """Load the best validation checkpoint back into the active model."""
+        if self.ckpt_path is None:
+            raise ValueError("Cannot restore best checkpoint because ckpt_path is not set.")
+        if not self.ckpt_path.exists():
+            raise FileNotFoundError(f"Best checkpoint not found: {self.ckpt_path}")
+        load_checkpoint(self.ckpt_path, self.model, map_location=self.device)

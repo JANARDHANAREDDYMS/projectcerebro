@@ -4,8 +4,11 @@ filter_version: bp_8_30_v1
 batch_size: 64
 epochs: 50
 lr: 1.0e-3
+weight_decay: 1.0e-4
+grad_clip_norm: 1.0
 patience: 15
 mlflow_experiment: cerebro_week2
 mlflow_uri: file://./artifacts/mlruns
 use_class_weights: true
 use_ea: true
+dropout: 0.25

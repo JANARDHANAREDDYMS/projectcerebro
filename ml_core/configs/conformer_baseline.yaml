@@ -5,6 +5,8 @@ datasets: [physionet, bci_iv_2a]
 batch_size: 64
 epochs: 80
 lr: 5.0e-4
+weight_decay: 1.0e-4
+grad_clip_norm: 1.0
 patience: 20
 out_dir: artifacts/checkpoints/conformer_bp8_30
 use_class_weights: true

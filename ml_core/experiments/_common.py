@@ -38,6 +38,13 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--weight-decay", type=float, default=1e-4)
+    parser.add_argument("--grad-clip-norm", type=float, default=1.0)
+    parser.add_argument(
+        "--no-class-weights",
+        action="store_true",
+        help="Disable inverse-frequency class weights fitted from the training split.",
+    )
     parser.add_argument("--patience", type=int, default=15)
     parser.add_argument("--out-dir", required=True, help="Output dir for ckpt + reports.")
     parser.add_argument("--mlflow-experiment", default=None, help="Skip MLflow if absent.")

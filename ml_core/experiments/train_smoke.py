@@ -29,9 +29,12 @@ def main() -> None:
     cfg = TrainConfig(
         n_epochs=args.epochs,
         lr=args.lr,
+        weight_decay=args.weight_decay,
         batch_size=args.batch_size,
         early_stop_patience=args.patience,
         seed=args.seed,
+        grad_clip_norm=args.grad_clip_norm,
+        use_class_weights=not args.no_class_weights,
         device=args.device,
     )
     cb = build_callback(
