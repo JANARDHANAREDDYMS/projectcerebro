@@ -30,3 +30,36 @@ def per_subject_metrics(
             y_true[mask], y_pred[mask], n_classes=n_classes, class_names=class_names
         )
     return out
+
+
+def aggregate_loso(per_fold_metrics: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate per-fold (per-held-out-subject) classification metrics.
+
+    Parameters
+    ----------
+    per_fold_metrics: ``{held_out_subject: classification_metrics_dict}``.
+
+    Returns
+    -------
+    A dict with mean and std for the scalar metrics across folds, plus the
+    raw per-subject dict.
+    """
+    if not per_fold_metrics:
+        return {"mean": {}, "std": {}, "n_folds": 0, "per_subject": {}}
+
+    keys = ["accuracy", "macro_f1", "balanced_accuracy"]
+    arrays: dict[str, list[float]] = {k: [] for k in keys}
+    for sid, metrics in per_fold_metrics.items():
+        for k in keys:
+            v = metrics.get(k)
+            if v is not None:
+                arrays[k].append(float(v))
+
+    means = {k: float(np.mean(v)) if v else float("nan") for k, v in arrays.items()}
+    stds = {k: float(np.std(v, ddof=0)) if v else float("nan") for k, v in arrays.items()}
+    return {
+        "mean": means,
+        "std": stds,
+        "n_folds": len(per_fold_metrics),
+        "per_subject": per_fold_metrics,
+    }
