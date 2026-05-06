@@ -1,10 +1,9 @@
-# Data folders (too large for GitHub)
+# Data folders (too large for GitHub) - anchored to repo root so they don't
+# match nested package paths such as ml_core/data/.
 /data/
 /data_cleaned/
 /delta_lake/
 /volumes/
-/artifacts/mlruns/
-/artifacts/checkpoints/
 
 # Python environment
 cerebro_env/
@@ -26,3 +25,16 @@ __pycache__/
 # Logs
 *.log
 *.jsonl
+
+# Python venvs
+.venv/
+venv/
+
+# ML run artifacts (keep folder placeholders only)
+artifacts/checkpoints/*
+!artifacts/checkpoints/.gitkeep
+artifacts/reports/*
+!artifacts/reports/.gitkeep
+artifacts/mlruns/*
+!artifacts/mlruns/.gitkeep
+
