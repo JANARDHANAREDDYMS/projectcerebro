@@ -1,8 +1,9 @@
-# Data folders (too large for GitHub)
-data/
-data_cleaned/
-delta_lake/
-volumes/
+# Data folders (too large for GitHub) - anchored to repo root so they don't
+# match nested package paths such as ml_core/data/.
+/data/
+/data_cleaned/
+/delta_lake/
+/volumes/
 
 # Python environment
 cerebro_env/
