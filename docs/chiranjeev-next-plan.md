@@ -40,6 +40,36 @@ Goal: report per-subject accuracy and macro F1 averaged across all held-out subj
 
 **Deliverable:** `artifacts/reports/loso_shallow_bci.json` and `loso_eegnet_bci.json` with per-subject metrics + means.
 
+---
+
+### Status: ✅ Complete (2026-05-06)
+
+**Results:**
+
+| Model | Accuracy | Macro F1 | Time (M4 MPS) |
+|-------|----------|----------|---------------|
+| ShallowConvNet | 50.1% ± 12.9% | 0.448 ± 0.174 | 24 min |
+| EEGNet | 49.7% ± 13.1% | 0.477 ± 0.146 | 13 min |
+
+**Per-subject variability:**
+- Strong subjects: A03 (68%), A09 (73%)
+- Weak subjects: A02 (35-37%), A05 (38-41%), A07 (35-37%)
+
+**Findings:**
+- High subject variance indicates poor cross-subject generalization
+- Performance ~50% vs 74% target (random baseline = 33% for 3-class)
+- EEGNet 2× faster with slightly better F1, similar accuracy
+- Subject A02, A05, A07 consistently struggle (<40%) → candidates for analysis
+
+**Outputs:**
+- `artifacts/reports/loso_shallow_bci/{loso_summary.json, fold_*.{pt,json}}`
+- `artifacts/reports/loso_eegnet_bci/{loso_summary.json, fold_*.{pt,json}}`
+- `tests/test_loso.py` — 4 tests, all pass
+
+**Branch:** `chiranjeev/loso-eval` (PR pending)
+
+---
+
 ## Phase B — Cho 2017 ingest
 
 Follow `docs/new_dataset_addition_steps.md` (on `janardhan` branch). Concretely:
