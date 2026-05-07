@@ -36,7 +36,9 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--out-dir", required=True, help="Output dir for ckpt + reports.")
     parser.add_argument("--mlflow-experiment", default=None, help="Skip MLflow if absent.")
     parser.add_argument(
-        "--mlflow-uri", default="file://./artifacts/mlruns", help="MLflow tracking URI."
+        "--mlflow-uri",
+        default="sqlite:///artifacts/mlruns/mlflow.db",
+        help="MLflow tracking URI. sqlite avoids the file-store race that hit local runs.",
     )
     parser.add_argument("--device", default=None, help="cuda|mps|cpu (auto if absent)")
     parser.add_argument(
