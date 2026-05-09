@@ -168,7 +168,29 @@ Test Parquet preview (S001 only):
 
 ## Parquet Output Location
 
-### Full Pipeline Output (running in background)
+### HuggingFace Dataset (Team Shared)
+
+The parquet is hosted on HuggingFace Datasets for team access:
+
+**https://huggingface.co/datasets/divyanshmaurya1/projectcerebro-eeg**
+
+Teammates can load it directly:
+```python
+from huggingface_hub import hf_hub_download
+import pandas as pd, numpy as np, io
+
+path = hf_hub_download(repo_id="divyanshmaurya1/projectcerebro-eeg",
+                       filename="epochs_mi_bp8_30.parquet", repo_type="dataset")
+df = pd.read_parquet(path)
+
+def load_features(row):
+    return np.load(io.BytesIO(row["features_bytes"]))  # shape: (5, 512)
+
+X = np.stack([load_features(r) for _, r in df.iterrows()])
+y = df["label_code"].values
+```
+
+### Local Studio Path (Full Pipeline Output)
 ```
 projectcerebro/parquet_output/epochs_mi_bp8_30.parquet
 ```

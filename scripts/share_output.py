@@ -67,7 +67,7 @@ def main() -> None:
     parser.add_argument("--transfer", action="store_true", help="Upload to catbox.moe")
     parser.add_argument("--hf",       action="store_true", help="Upload to HuggingFace")
     parser.add_argument("--token",    default=os.environ.get("HF_TOKEN"), help="HuggingFace token")
-    parser.add_argument("--repo",     default="projectcerebro/eeg-motor-imagery", help="HF repo id")
+    parser.add_argument("--repo",     default="divyanshmaurya1/projectcerebro-eeg", help="HF repo id")
     args = parser.parse_args()
 
     parquet_files = list(PARQUET_ROOT.glob("*.parquet"))
