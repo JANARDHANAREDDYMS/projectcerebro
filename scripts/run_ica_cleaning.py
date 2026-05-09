@@ -28,8 +28,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 PHYSIONET_ROOT = (
     PROJECT_ROOT
     / "data"
-    / "physionet"
-    / "physionet.org"
+    / "physionet_mne"
+    / "MNE-eegbci-data"
     / "files"
     / "eegmmidb"
     / "1.0.0"
