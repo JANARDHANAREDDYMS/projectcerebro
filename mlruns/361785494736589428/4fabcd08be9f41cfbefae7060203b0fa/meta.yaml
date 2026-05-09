@@ -1,0 +1,15 @@
+artifact_uri: /mlflow_artifacts/361785494736589428/4fabcd08be9f41cfbefae7060203b0fa/artifacts
+end_time: 1778351688480
+entry_point_name: ''
+experiment_id: '361785494736589428'
+lifecycle_stage: active
+run_id: 4fabcd08be9f41cfbefae7060203b0fa
+run_name: eegnet_bci_finetune_seed42_lr1e4_dropout06
+run_uuid: 4fabcd08be9f41cfbefae7060203b0fa
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778351688480
+status: 3
+tags: []
+user_id: ''

@@ -1,0 +1,15 @@
+artifact_uri: /mlflow_artifacts/361785494736589428/11b72b82914d4499a4b00ab6255a1683/artifacts
+end_time: 1778351689643
+entry_point_name: ''
+experiment_id: '361785494736589428'
+lifecycle_stage: active
+run_id: 11b72b82914d4499a4b00ab6255a1683
+run_name: shallow_physionet_only_seed42
+run_uuid: 11b72b82914d4499a4b00ab6255a1683
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778351689643
+status: 3
+tags: []
+user_id: ''

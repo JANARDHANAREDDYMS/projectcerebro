@@ -1,0 +1,15 @@
+artifact_uri: /mlflow_artifacts/361785494736589428/21f558ee1cf443f5ab969dbbf647e082/artifacts
+end_time: 1778351689350
+entry_point_name: ''
+experiment_id: '361785494736589428'
+lifecycle_stage: active
+run_id: 21f558ee1cf443f5ab969dbbf647e082
+run_name: shallow_bci_seed42_lr5e5
+run_uuid: 21f558ee1cf443f5ab969dbbf647e082
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778351689350
+status: 3
+tags: []
+user_id: ''

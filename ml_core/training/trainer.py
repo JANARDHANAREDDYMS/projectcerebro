@@ -23,6 +23,8 @@ from ..evaluation.metrics import compute_classification_metrics
 from .callbacks import NoOpCallback
 from .checkpoint import load_checkpoint, save_checkpoint
 
+MLFLOW_URI = "http://localhost:5001"
+
 
 def pick_device(prefer: str | None = None) -> torch.device:
     """Pick best available device. Override via ``prefer in {"cuda","mps","cpu"}``."""
@@ -68,6 +70,34 @@ def _class_weights(labels: np.ndarray, n_classes: int) -> torch.Tensor:
     total  = counts.sum()
     weights = total / (n_classes * counts)
     return torch.tensor(weights, dtype=torch.float32)
+
+
+def log_run_to_mlflow(
+    experiment_name: str,
+    params: Mapping[str, Any],
+    metrics: Mapping[str, float],
+    checkpoint_path: str | Path | None = None,
+) -> None:
+    """Log a completed training run to MLflow."""
+    try:
+        import mlflow
+
+        mlflow.set_tracking_uri(MLFLOW_URI)
+        mlflow.set_experiment(experiment_name)
+        with mlflow.start_run():
+            flat_params = {
+                key: value if isinstance(value, (str, int, float, bool)) else str(value)
+                for key, value in params.items()
+            }
+            mlflow.log_params(flat_params)
+            mlflow.log_metrics({key: float(value) for key, value in metrics.items()})
+            if checkpoint_path:
+                path = Path(checkpoint_path)
+                if path.exists():
+                    mlflow.log_artifact(str(path))
+        print(f"[MLflow] Logged run to experiment: {experiment_name}")
+    except Exception as exc:
+        print(f"[MLflow] Logging skipped: {exc}")
 
 
 class Trainer:

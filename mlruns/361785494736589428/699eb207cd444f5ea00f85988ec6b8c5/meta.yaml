@@ -1,0 +1,15 @@
+artifact_uri: /mlflow_artifacts/361785494736589428/699eb207cd444f5ea00f85988ec6b8c5/artifacts
+end_time: 1778351688851
+entry_point_name: ''
+experiment_id: '361785494736589428'
+lifecycle_stage: active
+run_id: 699eb207cd444f5ea00f85988ec6b8c5
+run_name: eegnet_bci_only_seed42
+run_uuid: 699eb207cd444f5ea00f85988ec6b8c5
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778351688851
+status: 3
+tags: []
+user_id: ''

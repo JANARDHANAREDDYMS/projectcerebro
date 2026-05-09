@@ -1,0 +1,15 @@
+artifact_uri: /mlflow_artifacts/361785494736589428/b1f485df8e1f46159e58cccdbf781675/artifacts
+end_time: 1778351686278
+entry_point_name: ''
+experiment_id: '361785494736589428'
+lifecycle_stage: active
+run_id: b1f485df8e1f46159e58cccdbf781675
+run_name: conformer_smoke
+run_uuid: b1f485df8e1f46159e58cccdbf781675
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778351686278
+status: 3
+tags: []
+user_id: ''

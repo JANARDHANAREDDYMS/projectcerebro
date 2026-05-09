@@ -3,9 +3,16 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import httpx
+
 from agents.state import BrainState
 from agents.tools.mongodb_client import insert_one
 from agents.tools.pgvector_client import insert_embedding
+
+FASTAPI_URL = "http://127.0.0.1:8001"
+SHOTS_NEEDED = 50
+CALIBRATION_STORE: dict[str, dict[int, list[dict]]] = {}
+CALIBRATED_SUBJECTS: set[str] = set()
 
 BREAK_THRESHOLD_N = 50
 CONFIDENCE_DROP_WINDOW = 20
@@ -16,6 +23,66 @@ def session_monitor_node(state: BrainState) -> BrainState:
     """Store predictions and embeddings while updating rolling session counters."""
     session_alerts = list(state.get("session_alerts", []))
     suggest_break = False
+    subject_id = state["subject_id"]
+    label_code = state.get("label_code")
+    features = state.get("features", [])
+    calibration_status = state.get("calibration_status", "not_started")
+
+    # Accumulate balanced subject-specific calibration epochs and trigger
+    # FastAPI adaptation once all classes have enough trials.
+    if subject_id not in CALIBRATED_SUBJECTS:
+        if subject_id not in CALIBRATION_STORE:
+            CALIBRATION_STORE[subject_id] = {0: [], 1: [], 2: []}
+
+        if label_code in [0, 1, 2] and len(features) == 2560:
+            store = CALIBRATION_STORE[subject_id]
+            if len(store[label_code]) < SHOTS_NEEDED:
+                store[label_code].append({"features": features, "label_code": label_code})
+
+        store = CALIBRATION_STORE[subject_id]
+        n_cal_left = len(store[0])
+        n_cal_right = len(store[1])
+        n_cal_rest = len(store[2])
+        calibration_status = "collecting"
+
+        print(
+            f"[SessionMonitor] Calibration: left={n_cal_left} "
+            f"right={n_cal_right} rest={n_cal_rest} / {SHOTS_NEEDED} needed"
+        )
+
+        if n_cal_left >= SHOTS_NEEDED and n_cal_right >= SHOTS_NEEDED and n_cal_rest >= SHOTS_NEEDED:
+            print(f"[SessionMonitor] Calibration ready for {subject_id}. Calling /calibrate...")
+            calibration_status = "calibrating"
+            calibration_epochs = []
+            for class_id in [0, 1, 2]:
+                calibration_epochs.extend(store[class_id][:SHOTS_NEEDED])
+
+            try:
+                response = httpx.post(
+                    f"{FASTAPI_URL}/calibrate",
+                    json={
+                        "subject_id": subject_id,
+                        "calibration_epochs": calibration_epochs,
+                        "adapt_epochs": 20,
+                        "adapt_lr": 1e-3,
+                    },
+                    timeout=60.0,
+                )
+                if response.status_code == 200:
+                    CALIBRATED_SUBJECTS.add(subject_id)
+                    calibration_status = "calibrated"
+                    print(
+                        f"[SessionMonitor] Subject {subject_id} calibrated! "
+                        "Future predictions use personalized model."
+                    )
+                else:
+                    calibration_status = "failed"
+                    print(f"[SessionMonitor] Calibration failed: {response.status_code} {response.text}")
+            except Exception as exc:
+                calibration_status = "failed"
+                print(f"[SessionMonitor] Calibration error: {exc}")
+    else:
+        calibration_status = "calibrated"
 
     if state.get("label_code") is not None:
         pred_doc = {
@@ -80,5 +147,5 @@ def session_monitor_node(state: BrainState) -> BrainState:
         "mean_confidence": mean_confidence,
         "session_alerts": session_alerts,
         "suggest_break": suggest_break,
+        "calibration_status": calibration_status,
     }
-

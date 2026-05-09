@@ -48,9 +48,7 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--patience", type=int, default=15)
     parser.add_argument("--out-dir", required=True, help="Output dir for ckpt + reports.")
     parser.add_argument("--mlflow-experiment", default=None, help="Skip MLflow if absent.")
-    parser.add_argument(
-        "--mlflow-uri", default="file://./artifacts/mlruns", help="MLflow tracking URI."
-    )
+    parser.add_argument("--mlflow-uri", default="http://localhost:5001", help="MLflow tracking URI.")
     parser.add_argument("--device", default=None, help="cuda|mps|cpu (auto if absent)")
     parser.add_argument(
         "--limit-rows",

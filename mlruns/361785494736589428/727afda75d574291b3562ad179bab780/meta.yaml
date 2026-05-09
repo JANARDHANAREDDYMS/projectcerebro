@@ -1,0 +1,15 @@
+artifact_uri: /mlflow_artifacts/361785494736589428/727afda75d574291b3562ad179bab780/artifacts
+end_time: 1778351685811
+entry_point_name: ''
+experiment_id: '361785494736589428'
+lifecycle_stage: active
+run_id: 727afda75d574291b3562ad179bab780
+run_name: conformer_small_seed42
+run_uuid: 727afda75d574291b3562ad179bab780
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778351685811
+status: 3
+tags: []
+user_id: ''
