@@ -1,9 +1,13 @@
 """FastAPI app for ProjectCerebro EEG BCI inference."""
 from __future__ import annotations
 
+import os
 import threading
 import time
 from contextlib import asynccontextmanager
+
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+os.environ["PYTORCH_MPS_HIGH_WATERMARK_RATIO"] = "0.0"
 
 import numpy as np
 from fastapi import FastAPI, HTTPException
@@ -193,4 +197,3 @@ async def predict_personalized(request: PredictRequest) -> dict:
     probs = probabilities_from_tensor(personalized.model, x)
     elapsed_ms = (time.time() - start) * 1000.0
     return predict_from_probabilities(probs, model_name="personalized_shallowconv", elapsed_ms=elapsed_ms)
-

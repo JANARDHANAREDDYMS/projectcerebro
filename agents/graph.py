@@ -171,6 +171,7 @@ def _initial_state(features: list[float], subject_id: str, session_id: str, epoc
         "mean_confidence": 0.0,
         "session_alerts": [],
         "suggest_break": False,
+        "calibration_status": "not_started",
         "trial_flagged": False,
         "flag_reason": None,
         "retraining_candidate": False,
@@ -199,4 +200,3 @@ def run_report(session_id: str, subject_id: str) -> None:
     """Generate a session report independently."""
     state = _initial_state([], subject_id, session_id, epoch_id="report_trigger")
     report_generator_node(state)
-

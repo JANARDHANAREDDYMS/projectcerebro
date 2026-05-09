@@ -15,10 +15,6 @@ from . import config
 
 def get_device() -> torch.device:
     """Return the best available inference device."""
-    if torch.backends.mps.is_available():
-        return torch.device("mps")
-    if torch.cuda.is_available():
-        return torch.device("cuda")
     return torch.device("cpu")
 
 
@@ -70,4 +66,3 @@ def freeze_backbone_for_classifier_adaptation(model: nn.Module) -> nn.Module:
     for param in classifier.parameters():
         param.requires_grad = True
     return model
-

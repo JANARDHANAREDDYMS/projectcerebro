@@ -34,6 +34,7 @@ class BrainState(TypedDict):
     mean_confidence: float
     session_alerts: list[str]
     suggest_break: bool
+    calibration_status: str
 
     trial_flagged: bool
     flag_reason: Optional[str]
@@ -45,4 +46,3 @@ class BrainState(TypedDict):
 
     alerts: list[dict]
     final_severity: str
-
