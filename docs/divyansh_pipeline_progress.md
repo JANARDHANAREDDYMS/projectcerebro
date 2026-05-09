@@ -161,9 +161,6 @@ A full end-to-end test was run for subject S001, run R04:
 | Stage 2 — Epoch extraction | 29 epochs: 8 left, 7 right, 14 rest |
 | Parquet output | 0.3 MB, 19 columns, valid schema |
 
-Test Parquet preview (S001 only):
-- **Download:** https://files.catbox.moe/n8b83c.parquet
-
 ---
 
 ## Parquet Output Location
