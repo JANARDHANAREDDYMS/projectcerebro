@@ -139,14 +139,10 @@ tail -f pipeline.log
 
 ### 7. New File: `scripts/share_output.py`
 
-Utility to upload the Parquet output for team sharing:
+Utility to upload the Parquet output to HuggingFace for team sharing:
 
 ```bash
-# Upload to catbox.moe (anonymous, permanent URL)
-python scripts/share_output.py --transfer
-
-# Upload to Hugging Face dataset
-python scripts/share_output.py --hf --token <HF_TOKEN> --repo yourname/projectcerebro-eeg
+python scripts/share_output.py --hf --token <HF_TOKEN>
 ```
 
 ---
@@ -187,16 +183,6 @@ X = np.stack([load_features(r) for _, r in df.iterrows()])
 y = df["label_code"].values
 ```
 
-### Local Studio Path (Full Pipeline Output)
-```
-projectcerebro/parquet_output/epochs_mi_bp8_30.parquet
-```
-
-**Full path on this studio:**
-```
-/teamspace/studios/this_studio/projectcerebro/parquet_output/epochs_mi_bp8_30.parquet
-```
-
 **Schema:**
 
 | Column | Type | Description |
@@ -216,23 +202,6 @@ projectcerebro/parquet_output/epochs_mi_bp8_30.parquet
 | `preprocessing_version` | string | `v1.1.0` |
 | `is_rest_synthetic` | bool | False for PhysioNet T0 rest, True for BCI gap-mined rest |
 
-**To load the features from the parquet:**
-```python
-import pandas as pd
-import numpy as np
-import io
-
-df = pd.read_parquet("parquet_output/epochs_mi_bp8_30.parquet")
-
-def load_features(row):
-    buf = io.BytesIO(row["features_bytes"])
-    return np.load(buf)  # shape: (5, 512)
-
-# Example: get all left-hand epochs as numpy array
-left = df[df["label_code"] == 0]
-X = np.stack([load_features(r) for _, r in left.iterrows()])  # (N, 5, 512)
-```
-
 ### Expected Scale (Full Run)
 - ~18,000+ epochs from PhysioNet (104 subjects × 6 runs × ~29 epochs/run)
 - ~1,300+ epochs from BCI IV-2a (9 subjects × 6 runs/session × ~24 epochs/run)
@@ -247,7 +216,7 @@ X = np.stack([load_features(r) for _, r in left.iterrows()])  # (N, 5, 512)
 | `scripts/run_ica_cleaning.py` | Modified | Fixed `PHYSIONET_ROOT` path to match MNE download location |
 | `scripts/run_pipeline.py` | **New** | Unified Stage 1 + Stage 2 pipeline (Parquet output, no Spark) |
 | `scripts/run_full_pipeline.sh` | **New** | Shell runner: waits for download, then runs full pipeline |
-| `scripts/share_output.py` | **New** | Upload parquet to catbox.moe or HuggingFace for team sharing |
+| `scripts/share_output.py` | **New** | Upload parquet to HuggingFace for team sharing |
 | `docs/divyansh_pipeline_progress.md` | **New** | This document |
 
 ---
@@ -262,8 +231,8 @@ tail -f /teamspace/studios/this_studio/projectcerebro/pipeline.log
 
 Expected completion: **~7–10 hours** from pipeline start (download ~1.5h + Stage 1 ICA ~6h + Stage 2 ~30min).
 
-Once complete, upload the parquet for team access:
+Once complete, upload the parquet to HuggingFace:
 ```bash
 cd /teamspace/studios/this_studio/projectcerebro
-python scripts/share_output.py --transfer
+python scripts/share_output.py --hf --token <HF_TOKEN>
 ```
