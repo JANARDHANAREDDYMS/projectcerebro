@@ -87,6 +87,27 @@ def main() -> None:
                 result = run_epoch(features=features, subject_id=subject_id, session_id=msg_session)
                 n_processed += 1
 
+                # Print full LangGraph state for each epoch
+                import json as _json
+
+                printable = {
+                    k: v for k, v in result.items()
+                    if k not in ("features", "embedding", "similar_trials")
+                }
+
+                print("\n=== AGENT STATE ===")
+                print(_json.dumps(printable, indent=2, default=str))
+
+                # Also print similar trials summary separately
+                similar = result.get("similar_trials", [])
+                if similar:
+                    print(f"  similar_trials: {len(similar)} neighbors found")
+                    for t in similar[:3]:
+                        print(f"    subject={t.get('subject_id')} "
+                              f"label={t.get('label_name')} "
+                              f"similarity={t.get('similarity', 0):.3f}")
+                print("===================\n")
+
                 cal_status = result.get("calibration_status", "")
                 if cal_status == "calibrated" and not n_calibrated_switch:
                     n_calibrated_switch = True
