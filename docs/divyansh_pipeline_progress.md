@@ -236,3 +236,21 @@ Completed: **2026-05-10 00:28 UTC**
 
 **Dataset on HuggingFace (live):**
 https://huggingface.co/datasets/divyanshmaurya1/projectcerebro-eeg
+
+---
+
+## Final Output — Pipeline Complete
+
+Completed: **2026-05-10 00:31 UTC**
+
+| Metric | Value |
+|--------|-------|
+| Total epochs | 15,934 |
+| Left hand | 4,234 |
+| Right hand | 4,166 |
+| Rest | 7,534 |
+| Subjects | 107 |
+| File size | 157.7 MB |
+
+**Dataset on HuggingFace (live):**
+https://huggingface.co/datasets/divyanshmaurya1/projectcerebro-eeg
