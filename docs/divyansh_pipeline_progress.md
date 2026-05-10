@@ -221,18 +221,18 @@ y = df["label_code"].values
 
 ---
 
-## Current Status (as of push)
+## Final Output — Pipeline Complete
 
-The full pipeline is **running in the background** on the Lightning AI Studio. Progress can be monitored with:
+Completed: **2026-05-10 00:28 UTC**
 
-```bash
-tail -f /teamspace/studios/this_studio/projectcerebro/pipeline.log
-```
+| Metric | Value |
+|--------|-------|
+| Total epochs | 15,905 |
+| Left hand | 4,227 |
+| Right hand | 4,158 |
+| Rest | 7,520 |
+| Subjects | 107 |
+| File size | 157.4 MB |
 
-Expected completion: **~7–10 hours** from pipeline start (download ~1.5h + Stage 1 ICA ~6h + Stage 2 ~30min).
-
-Once complete, upload the parquet to HuggingFace:
-```bash
-cd /teamspace/studios/this_studio/projectcerebro
-python scripts/share_output.py --hf --token <HF_TOKEN>
-```
+**Dataset on HuggingFace (live):**
+https://huggingface.co/datasets/divyanshmaurya1/projectcerebro-eeg
