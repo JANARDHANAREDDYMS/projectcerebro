@@ -53,6 +53,7 @@ PROJECT_ROOT      = Path(__file__).resolve().parent.parent
 CLEANED_ROOT      = PROJECT_ROOT / "data_cleaned"
 CLEANED_PHYSIONET = CLEANED_ROOT / "physionet"
 CLEANED_BCI       = CLEANED_ROOT / "bci_iv_2a"
+CLEANED_CHO2017   = CLEANED_ROOT / "cho2017"
 DELTA_ROOT        = PROJECT_ROOT / "delta_lake"
 MANIFEST_PATH     = PROJECT_ROOT / "data_cleaned" / "stage2_manifest.jsonl"
 
@@ -760,6 +761,14 @@ def process_one_file(args: tuple) -> tuple[list[EpochRecord], Stage2Record]:
                 run_id=run_id,
                 source_file=str(fif_path),
             )
+        elif dataset == "cho2017":
+            records = extract_cho2017_epochs(
+                raw=raw,
+                filter_cfg=filter_cfg,
+                subject_id=subject_id,
+                run_id=run_id,
+                source_file=str(fif_path),
+            )
         else:
             raise ValueError(f"Unsupported dataset: {dataset}")
 
@@ -810,8 +819,157 @@ def process_one_file(args: tuple) -> tuple[list[EpochRecord], Stage2Record]:
 
 
 # =========================================================
+# EPOCH EXTRACTION — CHO 2017
+# =========================================================
+
+def extract_cho2017_epochs(
+    raw: mne.io.BaseRaw,
+    filter_cfg: dict,
+    subject_id: str,
+    run_id: str,
+    source_file: str,
+) -> list[EpochRecord]:
+    """
+    Extract left/right epochs from Cho 2017.
+    Annotations: 'left' and 'right'
+    Rest: mined from inter-trial gaps (2s gaps)
+    """
+    records = []
+    sfreq   = raw.info["sfreq"]
+    now     = datetime.now(timezone.utc).isoformat()
+
+    try:
+        events, event_id = mne.events_from_annotations(
+            raw, verbose=False
+        )
+    except Exception as e:
+        print(f"  Warning: events failed {run_id}: {e}")
+        return records
+
+    left_code  = event_id.get("left")
+    right_code = event_id.get("right")
+
+    if left_code is None or right_code is None:
+        print(f"  Warning: left/right not found "
+              f"in {run_id}. Found: {event_id}")
+        return records
+
+    imagery_event_id = {
+        "left":  left_code,
+        "right": right_code,
+    }
+
+    try:
+        epochs_mne = mne.Epochs(
+            raw, events,
+            event_id=imagery_event_id,
+            tmin=TMIN, tmax=TMAX,
+            baseline=None,
+            preload=True,
+            reject_by_annotation=True,
+            verbose=False,
+        )
+    except Exception as e:
+        print(f"  Warning: Epochs failed {run_id}: {e}")
+        return records
+
+    imagery_event_samples = []
+
+    for i, epoch in enumerate(epochs_mne):
+        event_sample = epochs_mne.events[i, 0]
+        event_code   = epochs_mne.events[i, 2]
+        imagery_event_samples.append(event_sample)
+
+        lcode = LABEL_LEFT if event_code == left_code \
+                else LABEL_RIGHT
+        lname = "left" if event_code == left_code \
+                else "right"
+
+        resampled = resample_epoch(epoch, sfreq)
+        if resampled.shape[1] > N_SAMPLES:
+            resampled = resampled[:, :N_SAMPLES]
+        if resampled.shape[0] != N_CHANNELS or \
+           resampled.shape[1] < N_SAMPLES:
+            continue
+
+        corrected = apply_baseline_correction(resampled)
+        start_sec = (event_sample / sfreq) + TMIN
+        end_sec   = (event_sample / sfreq) + TMAX
+        eid       = build_epoch_id(
+            "cho2017", subject_id, run_id,
+            lcode, start_sec, end_sec
+        )
+
+        records.append(EpochRecord(
+            epoch_id=eid,
+            dataset="cho2017",
+            subject_id=subject_id,
+            session_id=None,
+            run_id=run_id,
+            source_file=source_file,
+            label_code=lcode,
+            label_name=lname,
+            features=corrected.flatten()
+                     .astype(np.float32).tolist(),
+            n_channels=N_CHANNELS,
+            n_samples=N_SAMPLES,
+            channel_names=COMMON_CHANNELS,
+            sampling_rate_hz=TARGET_SFREQ,
+            epoch_start_sec=float(start_sec),
+            epoch_end_sec=float(end_sec),
+            filter_version=filter_cfg["filter_version"],
+            preprocessing_version=PREPROCESSING_VERSION,
+            ingested_at=now,
+            is_rest_synthetic=False,
+        ))
+
+    # Mine rest from inter-trial gaps
+    rest_records = extract_rest_epochs(
+        raw=raw,
+        imagery_event_samples=imagery_event_samples,
+        sfreq=sfreq,
+        n_rest_target=len(records) // 2,
+        filter_cfg=filter_cfg,
+        dataset="cho2017",
+        subject_id=subject_id,
+        run_id=run_id,
+        source_file=source_file,
+        now=now,
+    )
+    records.extend(rest_records)
+    return records
+
+
+# =========================================================
 # FILE ITERATORS
 # =========================================================
+
+def iter_cho2017_jobs(
+    filter_key: str,
+    test_mode: bool
+) -> list[tuple]:
+    """Iterate Cho 2017 cleaned .fif files."""
+    cho_dir = CLEANED_CHO2017
+    jobs = []
+    for subject_dir in sorted(cho_dir.glob("s*")):
+        if not subject_dir.is_dir():
+            continue
+        subject_id = subject_dir.name
+        for fif in sorted(
+            subject_dir.glob("*_cleaned_raw.fif")
+        ):
+            run_id = fif.stem.replace("_cleaned_raw", "")
+            jobs.append((
+                "cho2017",
+                subject_id,
+                run_id,
+                fif,
+                filter_key
+            ))
+        if test_mode:
+            break
+    return jobs
+
 
 def iter_physionet_jobs(filter_key: str, test_mode: bool) -> list[tuple]:
     jobs = []
@@ -943,10 +1101,12 @@ def run_pipeline(filter_key: str, test_mode: bool) -> None:
 
     physionet_jobs = iter_physionet_jobs(filter_key, test_mode)
     bci_jobs       = iter_bci_jobs(filter_key, test_mode)
-    all_jobs       = physionet_jobs + bci_jobs
+    cho2017_jobs   = iter_cho2017_jobs(filter_key, test_mode)
+    all_jobs       = physionet_jobs + bci_jobs + cho2017_jobs
 
     print(f"PhysioNet jobs: {len(physionet_jobs)}")
     print(f"BCI IV-2a jobs: {len(bci_jobs)}")
+    print(f"Cho 2017 jobs:  {len(cho2017_jobs)}")
     print(f"Total jobs:     {len(all_jobs)}\n")
 
     all_records  = []
