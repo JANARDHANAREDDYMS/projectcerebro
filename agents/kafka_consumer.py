@@ -30,6 +30,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--topic", default="raw-eeg")
     parser.add_argument("--group-id", default="cerebro-agents")
     parser.add_argument("--session-id", default=None)
+    parser.add_argument("--filter-session-id", default=None)
+    parser.add_argument("--auto-offset-reset", choices=["earliest", "latest"], default="latest")
     parser.add_argument("--timeout-ms", type=int, default=120000, help="Stop after N ms of no messages")
     return parser.parse_args()
 
@@ -54,7 +56,7 @@ def main() -> None:
             args.topic,
             bootstrap_servers=args.kafka_host,
             group_id=args.group_id,
-            auto_offset_reset="latest",
+            auto_offset_reset=args.auto_offset_reset,
             value_deserializer=lambda message: json.loads(message.decode("utf-8")),
             consumer_timeout_ms=args.timeout_ms,
         )
@@ -74,8 +76,12 @@ def main() -> None:
                 epoch_id = epoch.get("epoch_id", str(uuid.uuid4()))
                 subject_id = epoch.get("subject_id", "unknown")
                 label_name = epoch.get("label_name", "unknown")
+                label_code = epoch.get("label_code")
                 features = epoch.get("features", [])
                 msg_session = epoch.get("session_id", session_id)
+
+                if args.filter_session_id and msg_session != args.filter_session_id:
+                    continue
 
                 print(f"\n[{n_processed + 1:>4}] epoch={epoch_id[:8]} subject={subject_id} label={label_name}")
 
@@ -84,7 +90,13 @@ def main() -> None:
                     n_errors += 1
                     continue
 
-                result = run_epoch(features=features, subject_id=subject_id, session_id=msg_session)
+                result = run_epoch(
+                    features=features,
+                    subject_id=subject_id,
+                    session_id=msg_session,
+                    true_label_code=int(label_code) if label_code is not None else None,
+                    true_label_name=label_name if label_name != "unknown" else None,
+                )
                 n_processed += 1
 
                 # Print full LangGraph state for each epoch
@@ -142,4 +154,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

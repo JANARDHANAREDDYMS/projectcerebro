@@ -48,9 +48,9 @@ echo "Kafka: OK"
 echo "Setting up Kafka topics..."
 cerebro_env/bin/python scripts/setup_kafka_topics.py
 
-SESSION="demo_$(date +%Y%m%d_%H%M%S)"
 SUBJECT="${1:-A09}"
 INTERVAL="${2:-1.0}"
+SESSION="${3:-demo_$(date +%Y%m%d_%H%M%S)}"
 
 echo ""
 echo "Session ID: $SESSION"

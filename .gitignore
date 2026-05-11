@@ -47,3 +47,4 @@ artifacts/reports/*
 !artifacts/reports/.gitkeep
 artifacts/mlruns/*
 !artifacts/mlruns/.gitkeep
+artifacts/stream_cache/

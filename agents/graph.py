@@ -144,7 +144,14 @@ def build_graph():
     return graph.compile()
 
 
-def _initial_state(features: list[float], subject_id: str, session_id: str, epoch_id: str | None = None) -> BrainState:
+def _initial_state(
+    features: list[float],
+    subject_id: str,
+    session_id: str,
+    epoch_id: str | None = None,
+    true_label_code: int | None = None,
+    true_label_name: str | None = None,
+) -> BrainState:
     """Create a fully populated BrainState for a new epoch."""
     return {
         "features": features,
@@ -152,6 +159,8 @@ def _initial_state(features: list[float], subject_id: str, session_id: str, epoc
         "session_id": session_id,
         "epoch_id": epoch_id or str(uuid.uuid4()),
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "true_label_code": true_label_code,
+        "true_label_name": true_label_name,
         "signal_quality": "good",
         "quality_score": 1.0,
         "bad_channels": [],
@@ -183,10 +192,25 @@ def _initial_state(features: list[float], subject_id: str, session_id: str, epoc
     }
 
 
-def run_epoch(features: list[float], subject_id: str, session_id: str) -> BrainState:
+def run_epoch(
+    features: list[float],
+    subject_id: str,
+    session_id: str,
+    *,
+    true_label_code: int | None = None,
+    true_label_name: str | None = None,
+) -> BrainState:
     """Run one EEG epoch through the full real-time agent graph."""
     graph = build_graph()
-    result = graph.invoke(_initial_state(features, subject_id, session_id))
+    result = graph.invoke(
+        _initial_state(
+            features,
+            subject_id,
+            session_id,
+            true_label_code=true_label_code,
+            true_label_name=true_label_name,
+        )
+    )
     return result
 
 

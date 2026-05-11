@@ -12,6 +12,8 @@ class BrainState(TypedDict):
     session_id: str
     epoch_id: str
     timestamp: str
+    true_label_code: Optional[int]
+    true_label_name: Optional[str]
 
     signal_quality: str
     quality_score: float

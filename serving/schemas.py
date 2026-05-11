@@ -54,6 +54,15 @@ class CalibrateRequest(BaseModel):
         return value
 
 
+class StartPredictionRequest(BaseModel):
+    """Request body for launching a Kafka-backed dashboard prediction run."""
+
+    subject: str = "A09"
+    session_id: str
+    interval: float = Field(default=0.5, gt=0.0)
+    timeout_ms: int = Field(default=120000, ge=1000)
+
+
 class PredictionResponse(BaseModel):
     """Single-model prediction response."""
 
@@ -77,4 +86,3 @@ class EmbeddingResponse(BaseModel):
     embedding: list[float]
     subject_id: str | None
     model: str
-

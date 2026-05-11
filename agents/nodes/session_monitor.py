@@ -25,6 +25,9 @@ def session_monitor_node(state: BrainState) -> BrainState:
     suggest_break = False
     subject_id = state["subject_id"]
     label_code = state.get("label_code")
+    calibration_label_code = state.get("true_label_code")
+    if calibration_label_code is None:
+        calibration_label_code = label_code
     features = state.get("features", [])
     calibration_status = state.get("calibration_status", "not_started")
 
@@ -34,10 +37,12 @@ def session_monitor_node(state: BrainState) -> BrainState:
         if subject_id not in CALIBRATION_STORE:
             CALIBRATION_STORE[subject_id] = {0: [], 1: [], 2: []}
 
-        if label_code in [0, 1, 2] and len(features) == 2560:
+        if calibration_label_code in [0, 1, 2] and len(features) == 2560:
             store = CALIBRATION_STORE[subject_id]
-            if len(store[label_code]) < SHOTS_NEEDED:
-                store[label_code].append({"features": features, "label_code": label_code})
+            if len(store[calibration_label_code]) < SHOTS_NEEDED:
+                store[calibration_label_code].append(
+                    {"features": features, "label_code": calibration_label_code}
+                )
 
         store = CALIBRATION_STORE[subject_id]
         n_cal_left = len(store[0])
