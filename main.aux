@@ -1,0 +1,93 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{ref:lotte2018,ref:lawhern2018}
+\citation{ref:lawhern2018}
+\citation{ref:schirrmeister2017}
+\citation{ref:song2022}
+\citation{ref:wei2021}
+\citation{ref:lotte2018}
+\@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {I-}0a}Contributions}{1}{paragraph.1.0.0.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{1}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {II-}0a}EEG decoders}{1}{paragraph.2.0.0.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {II-}0b}Transfer learning}{1}{paragraph.2.0.0.2}\protected@file@percent }
+\citation{ref:goldberger2000,ref:schalk2004}
+\citation{ref:cho2017}
+\citation{ref:brunner2008}
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces System layers and the technologies deployed in each.}}{2}{table.1}\protected@file@percent }
+\newlabel{tab:layers}{{I}{2}{System layers and the technologies deployed in each}{table.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces EEG datasets used in this work. ``Sub.'' reports the number of subjects whose runs survived ICA cleaning over the total downloaded. ``Ch.'' is the number of scalp EEG channels; Cho~2017 also provides 4 EMG channels and BCI~IV-2a 3 EOG channels, used for artifact rejection but not classification.}}{2}{table.2}\protected@file@percent }
+\newlabel{tab:datasets}{{II}{2}{EEG datasets used in this work. ``Sub.'' reports the number of subjects whose runs survived ICA cleaning over the total downloaded. ``Ch.'' is the number of scalp EEG channels; Cho~2017 also provides 4 EMG channels and BCI~IV-2a 3 EOG channels, used for artifact rejection but not classification}{table.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {II-}0c}BCI systems}{2}{paragraph.2.0.0.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {III}System Architecture}{2}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {IV}Datasets and Preprocessing}{2}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Datasets}{2}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Stage~1 -- ICA cleaning}{2}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {IV-B}0a}PhysioNet (\texttt  {.edf})}{2}{paragraph.4.2.0.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {IV-B}0b}BCI~IV-2a (\texttt  {.gdf})}{2}{paragraph.4.2.0.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {IV-B}0c}Cho~2017 (\texttt  {.mat})}{2}{paragraph.4.2.0.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Stage~2 -- Spark + Delta Lake}{2}{subsection.4.3}\protected@file@percent }
+\citation{ref:lawhern2018}
+\citation{ref:schirrmeister2017}
+\citation{ref:song2022}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces End-to-end ProjectCerebro architecture showing raw EEG ingestion, MNE/Spark preprocessing, Delta Lake storage, Kafka streaming, LangGraph agents, FastAPI inference, MongoDB, pgvector, MLflow, and the React dashboard.}}{3}{figure.1}\protected@file@percent }
+\newlabel{fig:arch}{{1}{3}{End-to-end ProjectCerebro architecture showing raw EEG ingestion, MNE/Spark preprocessing, Delta Lake storage, Kafka streaming, LangGraph agents, FastAPI inference, MongoDB, pgvector, MLflow, and the React dashboard}{figure.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {V}ML Core: Models and Training}{3}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Model architectures}{3}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0a}EEGNet-8,2~\cite  {ref:lawhern2018}}{3}{paragraph.5.1.0.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Class-labeled cleaned epoch counts by class (Delta Lake table \texttt  {epochs\_mi\_v1\_ch5\_sr128\_bp8\_30}).}}{3}{table.3}\protected@file@percent }
+\newlabel{tab:epochs}{{III}{3}{Class-labeled cleaned epoch counts by class (Delta Lake table \texttt {epochs\_mi\_v1\_ch5\_sr128\_bp8\_30})}{table.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0b}ShallowConvNet~\cite  {ref:schirrmeister2017}}{3}{paragraph.5.1.0.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0c}EEG Conformer~\cite  {ref:song2022}}{3}{paragraph.5.1.0.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-B}}Transfer learning chain}{3}{subsection.5.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Two-stage preprocessing pipeline. Raw EDF/GDF/MAT recordings are cleaned with MNE and ICA into FIF files. Spark then extracts 5-channel 4-second epochs, applies filtering, baseline correction, resampling to 128 Hz, normalization, and writes unified 2{,}560-feature records to Delta Lake.}}{4}{figure.2}\protected@file@percent }
+\newlabel{fig:preprocess}{{2}{4}{Two-stage preprocessing pipeline. Raw EDF/GDF/MAT recordings are cleaned with MNE and ICA into FIF files. Spark then extracts 5-channel 4-second epochs, applies filtering, baseline correction, resampling to 128 Hz, normalization, and writes unified 2{,}560-feature records to Delta Lake}{figure.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-C}}Hybrid compute strategy}{5}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-D}}Ensemble and calibration}{5}{subsection.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {VI}Streaming Pipeline and Agentic AI}{5}{section.6}\protected@file@percent }
+\newlabel{sec:stream}{{VI}{5}{Streaming Pipeline and Agentic AI}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-A}}Kafka ingestion}{5}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-B}}LangGraph agentic consumer}{5}{subsection.6.2}\protected@file@percent }
+\newlabel{alg:graph}{{1}{5}{Per-epoch flow through the LangGraph consumer}{lstlisting.1}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {1}Per-epoch flow through the LangGraph consumer.}{5}{lstlisting.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-C}}Quality and confidence thresholds}{5}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-D}}FastAPI serving layer}{5}{subsection.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-E}}Dashboard demonstration}{5}{subsection.6.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Polyglot Storage Layer}{6}{section.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {VII-}0a}MongoDB 7.0}{6}{paragraph.7.0.0.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {VII-}0b}Apache Cassandra 4.1}{6}{paragraph.7.0.0.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {VII-}0c}Redis 7.2}{6}{paragraph.7.0.0.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {VII-}0d}pgvector (Postgres 16)}{6}{paragraph.7.0.0.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {VIII}Results}{6}{section.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VIII-A}}Per-subject accuracy on BCI~IV-2a}{6}{subsection.8.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VIII-B}}Comparison to baselines}{6}{subsection.8.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VIII-C}}Latency and throughput}{6}{subsection.8.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Per-subject test results on BCI~IV-2a with the 50-shot personalized ensemble. ``$N$'' is the size of the held-out evaluation split for that subject.}}{6}{table.4}\protected@file@percent }
+\newlabel{tab:percent}{{IV}{6}{Per-subject test results on BCI~IV-2a with the 50-shot personalized ensemble. ``$N$'' is the size of the held-out evaluation split for that subject}{table.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces Comparison against simpler training regimes. ``Best'' reports the best single-subject result observed for that configuration; ``Mean'' averages over A01--A09 where available.}}{6}{table.5}\protected@file@percent }
+\newlabel{tab:baselines}{{V}{6}{Comparison against simpler training regimes. ``Best'' reports the best single-subject result observed for that configuration; ``Mean'' averages over A01--A09 where available}{table.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VIII-D}}MLflow run inventory}{6}{subsection.8.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {IX}Discussion}{6}{section.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {IX-}0a}Per-subject variance is the real story}{6}{paragraph.9.0.0.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {IX-}0b}Why ShallowConvNet won}{6}{paragraph.9.0.0.2}\protected@file@percent }
+\bibcite{ref:goldberger2000}{1}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {IX-}0c}Why EEG Conformer lost}{7}{paragraph.9.0.0.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {IX-}0d}Polyglot persistence pays off}{7}{paragraph.9.0.0.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {X}Limitations and Future Work}{7}{section.10}\protected@file@percent }
+\newlabel{sec:future}{{X}{7}{Limitations and Future Work}{section.10}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {XI}Conclusion}{7}{section.11}\protected@file@percent }
+\bibcite{ref:schalk2004}{2}
+\bibcite{ref:brunner2008}{3}
+\bibcite{ref:kaya2018}{4}
+\bibcite{ref:cho2017}{5}
+\bibcite{ref:lawhern2018}{6}
+\bibcite{ref:song2022}{7}
+\bibcite{ref:schirrmeister2017}{8}
+\bibcite{ref:lotte2018}{9}
+\bibcite{ref:wei2021}{10}
+\bibcite{ref:zaharia2020}{11}
+\bibcite{ref:kreps2011}{12}
+\@writefile{toc}{\contentsline {section}{References}{8}{section*.2}\protected@file@percent }
+\gdef \@abspage@last{8}

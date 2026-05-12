@@ -3,7 +3,7 @@ import Stream2_Epochs from './components/Stream2_Epochs'
 import Stream3_AgentLog from './components/Stream3_AgentLog'
 import { useCallback, useState } from 'react'
 
-const SUBJECTS = ['A04', 'A05', 'A07', 'A08', 'A09']
+const SUBJECTS = ['A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08', 'A09']
 
 export default function App() {
   const [subject, setSubject] = useState('A09')
@@ -46,8 +46,12 @@ export default function App() {
     setRunActive(true)
   }, [subject])
 
+  const stream1StartSec = epochInfo
+    ? Math.max(0, (epochInfo.anchorEpochStartSec ?? epochInfo.firstEpochStartSec) - 2)
+    : null
+
   const handleStartPrediction = useCallback(async () => {
-    if (!sessionId || predictionStatus === 'starting' || predictionStatus === 'started') return
+    if (!sessionId || stream1StartSec === null || predictionStatus === 'starting' || predictionStatus === 'started') return
     setPredictionStatus('starting')
     setPredictionError(null)
     try {
@@ -58,6 +62,7 @@ export default function App() {
           subject,
           session_id: sessionId,
           interval: 0.5,
+          start_sec: stream1StartSec,
           timeout_ms: 120000,
         }),
       })
@@ -70,11 +75,7 @@ export default function App() {
       setPredictionStatus('failed')
       setPredictionError(err.message)
     }
-  }, [predictionStatus, sessionId, subject])
-
-  const stream1StartSec = epochInfo
-    ? Math.max(0, (epochInfo.anchorEpochStartSec ?? epochInfo.firstEpochStartSec) - 2)
-    : null
+  }, [predictionStatus, sessionId, stream1StartSec, subject])
 
   return (
     <div style={{
@@ -318,7 +319,7 @@ export default function App() {
             <button
               type="button"
               onClick={handleStartPrediction}
-              disabled={!sessionId || predictionStatus === 'starting' || predictionStatus === 'started'}
+              disabled={!sessionId || stream1StartSec === null || predictionStatus === 'starting' || predictionStatus === 'started'}
               style={{
                 height: 32,
                 border: '1px solid #2563eb',
@@ -328,7 +329,7 @@ export default function App() {
                 fontSize: 11,
                 fontWeight: 700,
                 padding: '0 12px',
-                cursor: predictionStatus === 'starting' || predictionStatus === 'started' ? 'default' : 'pointer',
+                cursor: !sessionId || stream1StartSec === null || predictionStatus === 'starting' || predictionStatus === 'started' ? 'default' : 'pointer',
                 fontFamily: 'monospace',
                 letterSpacing: 0.5,
                 textTransform: 'uppercase',
@@ -339,6 +340,8 @@ export default function App() {
                 ? 'Starting...'
                 : predictionStatus === 'started'
                   ? 'Prediction Started'
+                  : stream1StartSec === null
+                    ? 'Loading Timeline'
                   : 'Start Prediction'}
             </button>
           </div>

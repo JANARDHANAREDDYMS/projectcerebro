@@ -149,6 +149,8 @@ def _initial_state(
     subject_id: str,
     session_id: str,
     epoch_id: str | None = None,
+    epoch_start_sec: float | None = None,
+    epoch_end_sec: float | None = None,
     true_label_code: int | None = None,
     true_label_name: str | None = None,
 ) -> BrainState:
@@ -159,6 +161,8 @@ def _initial_state(
         "session_id": session_id,
         "epoch_id": epoch_id or str(uuid.uuid4()),
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "epoch_start_sec": epoch_start_sec,
+        "epoch_end_sec": epoch_end_sec,
         "true_label_code": true_label_code,
         "true_label_name": true_label_name,
         "signal_quality": "good",
@@ -197,6 +201,8 @@ def run_epoch(
     subject_id: str,
     session_id: str,
     *,
+    epoch_start_sec: float | None = None,
+    epoch_end_sec: float | None = None,
     true_label_code: int | None = None,
     true_label_name: str | None = None,
 ) -> BrainState:
@@ -207,6 +213,8 @@ def run_epoch(
             features,
             subject_id,
             session_id,
+            epoch_start_sec=epoch_start_sec,
+            epoch_end_sec=epoch_end_sec,
             true_label_code=true_label_code,
             true_label_name=true_label_name,
         )

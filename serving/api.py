@@ -8,6 +8,7 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -95,6 +96,41 @@ def _load_subject_fif_cache(subject: str) -> dict:
     }
 
 
+def _worker_running(worker: object | None) -> bool:
+    """Return true for a running subprocess or thread-like worker."""
+    if worker is None:
+        return False
+    if hasattr(worker, "poll"):
+        return worker.poll() is None
+    if hasattr(worker, "is_alive"):
+        return bool(worker.is_alive())
+    return False
+
+
+def _worker_pid(worker: object | None) -> int | None:
+    """Return a PID for subprocess workers; threads do not have one."""
+    return getattr(worker, "pid", None)
+
+
+def _build_fif_cache_from_binary(subject: str) -> dict:
+    """Build and load a subject FIF stream cache with the direct binary reader."""
+    subject = subject.upper()
+    from scripts.read_fif_fast import read_fif_binary, resolve_fif_path, save_cache
+
+    fif_path = resolve_fif_path(subject)
+    start = time.time()
+    data, times, channels = read_fif_binary(fif_path)
+    elapsed = time.time() - start
+    save_cache(subject, fif_path, data, times, channels, elapsed)
+    print(
+        f"[stream/fif] Built binary FIF cache for {subject}: "
+        f"shape={data.shape} duration={float(times[-1]):.1f}s "
+        f"in {elapsed:.2f}s",
+        flush=True,
+    )
+    return _load_subject_fif_cache(subject)
+
+
 def _has_parquet_magic(path: Path) -> bool:
     """Return true if a file has Parquet magic bytes at header and footer."""
     stat = path.stat()
@@ -167,6 +203,52 @@ def _load_subject_epoch_cache(subject: str, filter_version: str = "bp_8_30_v1") 
     return payload
 
 
+def _build_pseudo_fif_cache_from_epochs(subject: str, filter_version: str = "bp_8_30_v1") -> dict:
+    """
+    Build a Stream 1 compatible continuous signal from 4-second epoch rows.
+
+    Some local FIF files may be Finder/iCloud placeholders and cannot be read
+    until downloaded. This fallback keeps dashboard demos available by placing
+    each preprocessed epoch at its original recording time and filling gaps with
+    low-amplitude noise.
+    """
+    cache = _load_subject_epoch_cache(subject, filter_version)
+    rows = cache["rows"]
+    if not rows:
+        raise FileNotFoundError(f"No epochs available to synthesize Stream 1 for {subject}.")
+
+    sfreq = FIF_TARGET_SFREQ
+    channels = ["FZ", "C3", "CZ", "C4", "PZ"]
+    max_end = max(float(row.get("epoch_end_sec", 0.0)) for row in rows)
+    n_samples = max(int(max_end * sfreq) + 1, sfreq)
+
+    rng = np.random.default_rng(abs(hash((subject, filter_version))) % (2**32))
+    data = rng.normal(0.0, 0.05e-6, size=(len(channels), n_samples)).astype(np.float32)
+
+    for row in rows:
+        features = row["features"]
+        if hasattr(features, "tolist"):
+            features = features.tolist()
+        if len(features) != 5 * 512:
+            continue
+        epoch = np.asarray(features, dtype=np.float32).reshape(5, 512)
+        start_idx = int(float(row.get("epoch_start_sec", 0.0)) * sfreq)
+        end_idx = min(start_idx + 512, n_samples)
+        width = max(0, end_idx - start_idx)
+        if width:
+            data[:, start_idx:end_idx] = epoch[:, :width]
+
+    return {
+        "subject": subject.upper(),
+        "data": data,
+        "times": np.arange(n_samples, dtype=np.float32) / sfreq,
+        "channels": channels,
+        "sfreq": sfreq,
+        "duration": float(n_samples / sfreq),
+        "source": "pseudo_continuous_from_epochs",
+    }
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load models and preprocessing artifacts once at API startup."""
@@ -184,14 +266,118 @@ async def lifespan(app: FastAPI):
     yield
     app.state.calibrated_subjects.clear()
     for run in app.state.prediction_runs.values():
-        for proc in (run.get("consumer"), run.get("producer")):
-            if proc is not None and proc.poll() is None:
-                proc.terminate()
+        stop_event = run.get("producer_stop")
+        if stop_event is not None:
+            stop_event.set()
+        for worker in (run.get("consumer"), run.get("producer")):
+            if worker is None:
+                continue
+            if hasattr(worker, "poll") and worker.poll() is None:
+                worker.terminate()
     app.state.prediction_runs.clear()
     app.state.epoch_cache.clear()
 
 
 app = FastAPI(title="ProjectCerebro Serving API", version=config.VERSION, lifespan=lifespan)
+
+
+def _dashboard_kafka_producer(
+    subject: str,
+    session_id: str,
+    start_sec: float | None,
+    time_scale: float,
+    stop_event: threading.Event,
+    log_path: Path,
+) -> None:
+    """Publish dashboard epochs from the already-loaded FastAPI epoch cache."""
+    from kafka import KafkaProducer
+
+    def log(message: str) -> None:
+        with log_path.open("a", encoding="utf-8") as handle:
+            handle.write(message + "\n")
+            handle.flush()
+
+    try:
+        cache = _load_subject_epoch_cache(subject)
+        rows = sorted(cache["rows"], key=lambda item: float(item.get("epoch_start_sec", 0.0)))
+        if start_sec is not None:
+            rows = [row for row in rows if float(row.get("epoch_start_sec", 0.0)) >= start_sec]
+        if not rows:
+            log(f"ERROR: no rows available for {subject} at start_sec={start_sec}")
+            return
+
+        base_sec = float(start_sec) if start_sec is not None else float(rows[0].get("epoch_start_sec", 0.0))
+        time_scale = max(float(time_scale), 1e-6)
+        label_counts: dict[str, int] = {}
+        for row in rows:
+            label = str(row.get("label_name", row.get("label_code", "unknown")))
+            label_counts[label] = label_counts.get(label, 0) + 1
+
+        log("Loading epochs from FastAPI Stream 2 cache")
+        log(f"Subject:     {subject}")
+        log(f"Epochs:      {len(rows)}  {label_counts}")
+        log(f"Timeline:    True")
+        log(f"Start sec:   {base_sec:.3f}s")
+        log(f"Time scale:  {time_scale}x")
+        log(f"Session:     {session_id}")
+        log("Connecting to Kafka...")
+
+        producer = KafkaProducer(
+            bootstrap_servers="localhost:9092",
+            value_serializer=lambda value: json.dumps(value).encode("utf-8"),
+            acks="all",
+            retries=3,
+        )
+        log("Connected.")
+
+        loop_started_at = time.monotonic()
+        total_sent = 0
+        for row in rows:
+            if stop_event.is_set():
+                break
+
+            epoch_start_sec = float(row.get("epoch_start_sec", 0.0))
+            target_elapsed = max(0.0, epoch_start_sec - base_sec) / time_scale
+            while True:
+                sleep_for = loop_started_at + target_elapsed - time.monotonic()
+                if sleep_for <= 0 or stop_event.is_set():
+                    break
+                time.sleep(min(0.1, sleep_for))
+            if stop_event.is_set():
+                break
+
+            features = row["features"]
+            if hasattr(features, "tolist"):
+                features = features.tolist()
+
+            message = {
+                "epoch_id": str(uuid.uuid4()),
+                "subject_id": subject,
+                "session_id": session_id,
+                "features": features,
+                "label_code": int(row["label_code"]),
+                "label_name": str(row.get("label_name", row["label_code"])),
+                "epoch_start_sec": epoch_start_sec,
+                "epoch_end_sec": float(row.get("epoch_end_sec", 0.0)),
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "iteration": 1,
+            }
+            producer.send("raw-eeg", value=message)
+            producer.flush()
+            total_sent += 1
+
+            if total_sent == 1 or total_sent % 10 == 0:
+                log(
+                    f"  [{total_sent:>4}] label={message['label_name']:<6} "
+                    f"epoch={message['epoch_id'][:8]} "
+                    f"start={epoch_start_sec:.1f}s session={session_id}"
+                )
+
+        producer.flush()
+        producer.close()
+        log(f"Producer closed cleanly. Total sent: {total_sent}")
+    except Exception as exc:
+        log(f"ERROR: {exc}")
 
 
 @app.get("/health")
@@ -373,7 +559,30 @@ async def stream_fif(request: Request, subject: str = "A09", start_sec: float = 
                         flush=True,
                     )
                 except Exception as exc:
-                    load_error = str(exc)
+                    try:
+                        cache = _build_fif_cache_from_binary(subject)
+                        app.state.fif_cache[subject] = cache
+                        print(
+                            f"[stream/fif] Loaded on-demand binary cache for {subject}: "
+                            f"shape={cache['data'].shape} duration={cache['duration']:.1f}s "
+                            f"because FIF cache was unavailable: {exc}",
+                            flush=True,
+                        )
+                    except Exception as binary_exc:
+                        try:
+                            cache = _build_pseudo_fif_cache_from_epochs(subject)
+                            app.state.fif_cache[subject] = cache
+                            print(
+                                f"[stream/fif] Built pseudo cache for {subject}: "
+                                f"shape={cache['data'].shape} duration={cache['duration']:.1f}s "
+                                f"because binary FIF cache build failed: {binary_exc}",
+                                flush=True,
+                            )
+                        except Exception as fallback_exc:
+                            load_error = (
+                                f"{exc}; binary build failed: {binary_exc}; "
+                                f"fallback failed: {fallback_exc}"
+                            )
 
         if load_error:
             yield f"data: {json.dumps({'type': 'error', 'subject': subject, 'error': load_error})}\n\n"
@@ -636,6 +845,9 @@ async def stream_agents(
                         "signal_quality": str(pred.get("signal_quality", "unknown")),
                         "quality_score": round(float(pred.get("quality_score") or 0.0), 3),
                         "calibration_status": calibration_status,
+                        "stream_time_sec": pred.get("stream_time_sec", pred.get("epoch_start_sec")),
+                        "epoch_start_sec": pred.get("epoch_start_sec"),
+                        "epoch_end_sec": pred.get("epoch_end_sec"),
                         "alerts": epoch_alerts,
                         "timestamp": timestamp,
                         "n_predictions": n_predictions,
@@ -676,6 +888,125 @@ async def stream_agents(
     )
 
 
+def _serialize_agent_prediction(pred: dict) -> dict:
+    """Convert a MongoDB prediction document to a dashboard-safe payload."""
+    timestamp = pred.get("timestamp", "")
+    if hasattr(timestamp, "isoformat"):
+        timestamp = timestamp.isoformat()
+    else:
+        timestamp = str(timestamp)
+
+    return {
+        "epoch_id": str(pred.get("epoch_id", "")),
+        "subject_id": str(pred.get("subject_id", "")),
+        "session_id": str(pred.get("session_id", "")),
+        "label_name": str(pred.get("label_name", "unknown")),
+        "label_code": int(pred.get("label_code", -1)),
+        "confidence": round(float(pred.get("confidence") or 0.0), 4),
+        "model_used": str(pred.get("model_used", "ensemble")),
+        "signal_quality": str(pred.get("signal_quality", "unknown")),
+        "quality_score": round(float(pred.get("quality_score") or 0.0), 3),
+        "calibration_status": str(pred.get("calibration_status", "")),
+        "stream_time_sec": pred.get("stream_time_sec", pred.get("epoch_start_sec")),
+        "epoch_start_sec": pred.get("epoch_start_sec"),
+        "epoch_end_sec": pred.get("epoch_end_sec"),
+        "timestamp": timestamp,
+    }
+
+
+@app.get("/stream/agents/snapshot")
+async def stream_agents_snapshot(session_id: str | None = None, limit: int = 50) -> dict:
+    """
+    Return the latest Stream 3 state from MongoDB.
+
+    This is a non-streaming fallback for browsers/dev proxies that keep the SSE
+    connection open but miss incremental events.
+    """
+    try:
+        from pymongo import MongoClient
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"pymongo unavailable: {exc}") from exc
+
+    mongo_uri = os.getenv(
+        "CEREBRO_MONGO_URI",
+        "mongodb://cerebro:cerebro123@localhost:27017/?authSource=admin",
+    )
+    mongo_db = os.getenv("CEREBRO_MONGO_DB", "projectcerebro")
+    query = {"session_id": session_id} if session_id else {}
+    limit = max(1, min(int(limit), 200))
+
+    try:
+        mongo = MongoClient(mongo_uri, serverSelectionTimeoutMS=3000)
+        mongo.admin.command("ping")
+        db = mongo[mongo_db]
+        docs = list(db.predictions.find(query).sort("_id", -1).limit(limit))
+        total = db.predictions.count_documents(query)
+        alert_total = db.alerts.count_documents(query)
+        epoch_ids = [doc.get("epoch_id") for doc in docs if doc.get("epoch_id")]
+        alerts_by_epoch: dict[str, list[dict]] = {str(epoch_id): [] for epoch_id in epoch_ids}
+        if epoch_ids:
+            for alert in db.alerts.find(
+                {"epoch_id": {"$in": epoch_ids}},
+                {"_id": 0, "epoch_id": 1, "severity": 1, "message": 1, "agent": 1},
+            ):
+                alerts_by_epoch.setdefault(str(alert.get("epoch_id", "")), []).append(
+                    {
+                        "severity": alert.get("severity", "info"),
+                        "message": alert.get("message", ""),
+                        "agent": alert.get("agent", ""),
+                    }
+                )
+        mongo.close()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    ordered_docs = list(reversed(docs))
+    # Counts should use the full session, not just the latest limited slice.
+    label_counts = {"left": 0, "right": 0, "rest": 0}
+    confidence_values = []
+    try:
+        mongo = MongoClient(mongo_uri, serverSelectionTimeoutMS=3000)
+        db = mongo[mongo_db]
+        for doc in db.predictions.find(query, {"label_name": 1, "confidence": 1}):
+            label = str(doc.get("label_name", "unknown"))
+            if label in label_counts:
+                label_counts[label] += 1
+            confidence_values.append(float(doc.get("confidence") or 0.0))
+        mongo.close()
+    except Exception:
+        for doc in ordered_docs:
+            label = str(doc.get("label_name", "unknown"))
+            if label in label_counts:
+                label_counts[label] += 1
+            confidence_values.append(float(doc.get("confidence") or 0.0))
+
+    predictions = []
+    for index, pred in enumerate(ordered_docs, start=max(1, total - len(ordered_docs) + 1)):
+        payload = _serialize_agent_prediction(pred)
+        payload.update(
+            {
+                "n_predictions": index,
+                "alerts": alerts_by_epoch.get(payload["epoch_id"], []),
+            }
+        )
+        predictions.append(payload)
+
+    return {
+        "type": "snapshot",
+        "database": mongo_db,
+        "session_id": session_id,
+        "n_predictions": total,
+        "n_left": label_counts["left"],
+        "n_right": label_counts["right"],
+        "n_rest": label_counts["rest"],
+        "mean_confidence": round(sum(confidence_values) / len(confidence_values), 4)
+        if confidence_values
+        else 0.0,
+        "n_alerts": alert_total,
+        "predictions": predictions,
+    }
+
+
 @app.post("/stream/start-prediction")
 async def start_prediction_stream(request: StartPredictionRequest) -> dict:
     """
@@ -695,15 +1026,15 @@ async def start_prediction_stream(request: StartPredictionRequest) -> dict:
         if existing:
             consumer = existing.get("consumer")
             producer = existing.get("producer")
-            consumer_running = consumer is not None and consumer.poll() is None
-            producer_running = producer is not None and producer.poll() is None
+            consumer_running = _worker_running(consumer)
+            producer_running = _worker_running(producer)
             if consumer_running or producer_running:
                 return {
                     "status": "already_running",
                     "subject": subject,
                     "session_id": session_id,
-                    "consumer_pid": consumer.pid if consumer is not None else None,
-                    "producer_pid": producer.pid if producer is not None else None,
+                    "consumer_pid": _worker_pid(consumer),
+                    "producer_pid": _worker_pid(producer),
                 }
 
     logs_dir = config.PROJECT_ROOT / "artifacts" / "logs"
@@ -738,18 +1069,6 @@ async def start_prediction_stream(request: StartPredictionRequest) -> dict:
         "--timeout-ms",
         str(int(request.timeout_ms)),
     ]
-    producer_cmd = [
-        sys.executable,
-        "-u",
-        "scripts/kafka_eeg_producer.py",
-        "--subject",
-        subject,
-        "--session-id",
-        session_id,
-        "--interval",
-        str(float(request.interval)),
-    ]
-
     try:
         consumer = subprocess.Popen(
             consumer_cmd,
@@ -759,15 +1078,16 @@ async def start_prediction_stream(request: StartPredictionRequest) -> dict:
             stderr=subprocess.STDOUT,
         )
         await asyncio.sleep(2.0)
-        producer = subprocess.Popen(
-            producer_cmd,
-            cwd=str(config.PROJECT_ROOT),
-            env=env,
-            stdout=producer_log,
-            stderr=subprocess.STDOUT,
-        )
-        consumer_log.close()
         producer_log.close()
+        producer_stop = threading.Event()
+        producer = threading.Thread(
+            target=_dashboard_kafka_producer,
+            args=(subject, session_id, request.start_sec, 1.0, producer_stop, producer_log_path),
+            daemon=True,
+            name=f"dashboard-producer-{safe_session}",
+        )
+        producer.start()
+        consumer_log.close()
     except Exception as exc:
         consumer_log.close()
         producer_log.close()
@@ -778,6 +1098,7 @@ async def start_prediction_stream(request: StartPredictionRequest) -> dict:
             "subject": subject,
             "consumer": consumer,
             "producer": producer,
+            "producer_stop": producer_stop,
             "consumer_log": str(consumer_log_path),
             "producer_log": str(producer_log_path),
             "started_at": time.time(),
@@ -788,7 +1109,7 @@ async def start_prediction_stream(request: StartPredictionRequest) -> dict:
         "subject": subject,
         "session_id": session_id,
         "consumer_pid": consumer.pid,
-        "producer_pid": producer.pid,
+        "producer_pid": None,
         "consumer_log": str(consumer_log_path.relative_to(config.PROJECT_ROOT)),
         "producer_log": str(producer_log_path.relative_to(config.PROJECT_ROOT)),
     }

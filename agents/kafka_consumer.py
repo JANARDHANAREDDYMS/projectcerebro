@@ -77,6 +77,8 @@ def main() -> None:
                 subject_id = epoch.get("subject_id", "unknown")
                 label_name = epoch.get("label_name", "unknown")
                 label_code = epoch.get("label_code")
+                epoch_start_sec = epoch.get("epoch_start_sec")
+                epoch_end_sec = epoch.get("epoch_end_sec")
                 features = epoch.get("features", [])
                 msg_session = epoch.get("session_id", session_id)
 
@@ -94,6 +96,8 @@ def main() -> None:
                     features=features,
                     subject_id=subject_id,
                     session_id=msg_session,
+                    epoch_start_sec=float(epoch_start_sec) if epoch_start_sec is not None else None,
+                    epoch_end_sec=float(epoch_end_sec) if epoch_end_sec is not None else None,
                     true_label_code=int(label_code) if label_code is not None else None,
                     true_label_name=label_name if label_name != "unknown" else None,
                 )

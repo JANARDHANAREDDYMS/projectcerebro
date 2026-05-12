@@ -34,6 +34,13 @@ const SEVERITY_ICONS = {
 const MAX_LOG_ENTRIES = 50
 const SHOTS_NEEDED = 50
 
+function formatStreamTime(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return '--'
+  }
+  return `${Number(value).toFixed(1)}s`
+}
+
 function ConfidenceBar({ value, color }) {
   const pct = Math.max(0, Math.min(100, Math.round((value || 0) * 100)))
   return (
@@ -129,7 +136,7 @@ export default function Stream3_AgentLog({ subject, sessionId, active = false })
       setLog((prev) => {
         const entry = {
           id: data.epoch_id,
-          time: new Date().toLocaleTimeString(),
+          time: formatStreamTime(data.stream_time_sec ?? data.epoch_start_sec),
           label: data.label_name,
           confidence: data.confidence || 0,
           model: data.model_used,
@@ -161,7 +168,7 @@ export default function Stream3_AgentLog({ subject, sessionId, active = false })
         setAlerts((prev) => [
           ...data.alerts.map((alert) => ({
             ...alert,
-            time: new Date().toLocaleTimeString(),
+            time: formatStreamTime(data.stream_time_sec ?? data.epoch_start_sec),
             epoch_n: data.n_predictions,
           })),
           ...prev,
@@ -185,6 +192,71 @@ export default function Stream3_AgentLog({ subject, sessionId, active = false })
     ? `/stream/agents?session_id=${encodeURIComponent(sessionId)}`
     : null
   const { connected, error } = useSSE(agentStreamUrl, handleMessage)
+
+  useEffect(() => {
+    if (!active || !sessionId) return undefined
+
+    let cancelled = false
+
+    const loadSnapshot = async () => {
+      try {
+        const response = await fetch(
+          `/stream/agents/snapshot?session_id=${encodeURIComponent(sessionId)}&limit=${MAX_LOG_ENTRIES}`,
+        )
+        if (!response.ok) return
+        const data = await response.json()
+        if (cancelled || data.type !== 'snapshot') return
+
+        const latest = (data.predictions || []).slice().reverse()
+        setLog(latest.map((item) => ({
+          id: item.epoch_id,
+          time: formatStreamTime(item.stream_time_sec ?? item.epoch_start_sec),
+          label: item.label_name,
+          confidence: item.confidence || 0,
+          model: item.model_used,
+          quality: item.signal_quality,
+          qualityScore: item.quality_score,
+          calibration: item.calibration_status,
+          n: item.n_predictions,
+        })))
+
+        setStats({
+          n_predictions: data.n_predictions,
+          n_left: data.n_left,
+          n_right: data.n_right,
+          n_rest: data.n_rest,
+          mean_confidence: data.mean_confidence,
+          n_alerts: data.n_alerts,
+        })
+
+        setCalStatus((prev) => ({
+          left: data.n_left,
+          right: data.n_right,
+          rest: data.n_rest,
+          status: prev.status,
+        }))
+
+        const latestAlerts = latest
+          .flatMap((item) => (item.alerts || []).map((alert) => ({
+            ...alert,
+            time: formatStreamTime(item.stream_time_sec ?? item.epoch_start_sec),
+            epoch_n: item.n_predictions,
+          })))
+          .slice(0, 20)
+        setAlerts(latestAlerts)
+      } catch {
+        // SSE remains the primary live channel; polling is only a fallback.
+      }
+    }
+
+    loadSnapshot()
+    const interval = window.setInterval(loadSnapshot, 1000)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [active, sessionId])
+
   const calibrated = calStatus.status === 'calibrated'
     || (calStatus.left >= SHOTS_NEEDED && calStatus.right >= SHOTS_NEEDED && calStatus.rest >= SHOTS_NEEDED)
 
