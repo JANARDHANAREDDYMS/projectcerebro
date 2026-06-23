@@ -6,7 +6,7 @@ Project Cerebro is a production-grade distributed system that decodes directiona
 ## Motivation
 This project was inspired by watching someone close to me get diagnosed with ALS and lose the ability to communicate. Traditional BCIs fail when switching between EEG devices due to device-specific noise profiles. Project Cerebro solves this through rigorous data preprocessing and cross-hardware generalization, making clinical deployment feasible.
 
-### Find more about the project at: https://janardhanr.com/projects/projectcerebro
+[Learn more about the project](https://janardhanr.com/projects/projectcerebro)
 
 ## Architecture
 
