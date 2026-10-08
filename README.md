@@ -162,7 +162,6 @@ kubectl apply -f k8s/deployment.yaml
 
 ## Contact & Collaboration
 For questions about the project or potential collaboration:
-- Email: janardhanareddyms@gmail.com
 - Portfolio: https://janardhanr.com
 - GitHub: https://github.com/janardhanareddyms
 
