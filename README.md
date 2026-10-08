@@ -168,4 +168,3 @@ For questions about the project or potential collaboration:
 
 ## Acknowledgments
 - NYU Neuroinformatics Lab for clinical partnership and expertise
-- All 109 subjects who participated in data collection
