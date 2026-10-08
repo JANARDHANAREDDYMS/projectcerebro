@@ -166,9 +166,6 @@ For questions about the project or potential collaboration:
 - Portfolio: https://janardhanr.com
 - GitHub: https://github.com/janardhanareddyms
 
-## License
-[Specify your license here]
-
 ## Acknowledgments
 - NYU Neuroinformatics Lab for clinical partnership and expertise
 - All 109 subjects who participated in data collection
