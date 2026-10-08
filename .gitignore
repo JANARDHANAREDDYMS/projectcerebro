@@ -3,6 +3,8 @@
 /data_cleaned/
 /delta_lake/
 /volumes/
+/docs/
+/figures/
 
 # Python environment
 cerebro_env/
