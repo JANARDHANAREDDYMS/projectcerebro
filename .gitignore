@@ -5,6 +5,8 @@
 /volumes/
 /docs/
 /figures/
+/main.pdf
+/main.aux
 
 # Python environment
 cerebro_env/
